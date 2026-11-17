@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taggedpd"
+version = "0.1.0"
+description = "Polarized deuteron DIS with spectator nucleon tagging (impulse approximation, light-front)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22"]
+authors = [{ name = "W. Cosyn" }]
+
+[project.optional-dependencies]
+test = ["pytest", "scipy"]
+notebook = ["matplotlib", "jupyter"]
+lhapdf = []   # needs the lhapdf python bindings from your LHAPDF installation
+
+[tool.setuptools]
+packages = ["taggedpd"]
+
+[tool.setuptools.package-data]
+taggedpd = ["data/*.grid"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::scipy.integrate.IntegrationWarning"]
