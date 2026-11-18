@@ -53,6 +53,22 @@ P.UU, P.TLL_U, P.SL_SL, P.ST_ST_par, P.R_LL                   # Eqs. (4.18)-(4.4
 Every argument broadcasts as a numpy array. If you sample the spectator in the deuteron
 rest frame, `taggedpd.spectator_lf_from_rest_frame(p_vec)` gives (α_p, p_pT) (Eq. 2.13).
 
+### Proton or neutron tagging
+
+The `tagged` argument selects which nucleon is detected; the other one is the active
+nucleon whose structure functions enter:
+
+```python
+p_tag = TaggedDIS("AV18", tagged="p")   # default: proton detected, neutron structure (F2n, g1n, ...)
+n_tag = TaggedDIS("AV18", tagged="n")   # neutron detected, proton structure (F2p, g1p, ...)
+```
+
+Only the nucleon structure functions change. The deuteron side (LF distributions,
+kinematics) is identical for both, because the wave functions are isospin symmetric and
+the average nucleon mass m is used throughout; `alpha_p`, `pT`, `phi_p` and the
+distributions `P.*` then refer to the detected spectator and the active nucleon,
+whichever is which. The paper writes all formulas for proton tagging (Eq. 2.2).
+
 ## Layout
 
 | module | content | paper |
@@ -77,6 +93,8 @@ rest frame, `taggedpd.spectator_lf_from_rest_frame(p_vec)` gives (α_p, p_pT) (E
   as is, without rescaling.
 * **Tensor distributions** are those of the normalized spherical tensors (Eq. 4.19). The
   C++ `getLFdistributions_new` output differs by √(3/2), √2, 1/√2 (T_LL, T_LT, T_TT).
+* **Tagging:** `TaggedDIS(..., tagged="p")` (default) or `"n"`; see above. Function and
+  attribute names follow the paper's proton-tagging notation in both cases.
 * **x** is the rescaled variable x = 2x_D ∈ (0, 2). x_n = x/(2−α_p). The kinematic limit
   α_p < 2 − x gives zero outside it, and unphysical y gives zero cross section.
 * **λₑ = ±½** enters as 2λₑ (Part I). Polarization angles are measured relative to the
@@ -116,6 +134,10 @@ PRD 80, 034030 (2009)).
   expected values are exact.
 * Closed-form asymmetries (6.4), (6.8), (6.12), (6.16) and the Table II extremes reproduced
   by the generic pure-state construction of Part I.
+* Proton vs neutron tagging: identical deuteron distributions, and every tagged structure
+  function scales exactly with the corresponding proton/neutron input (e.g. the
+  unpolarized cross-section ratio equals (F_T + εF_L)_p/(F_T + εF_L)_n; A^V_∥ changes
+  sign with g₁).
 
 ## Issues found in existing material while porting
 

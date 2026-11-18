@@ -69,7 +69,9 @@ Reference data in `tests/reference/` is subsampled C++ output: `lf_dens_24_*_fin
   so the expected values are exact. The closed-form asymmetries (6.4), (6.8), (6.12) and
   (6.16) and the Table II extremes are reproduced by the generic pure-state construction
   of Part I. The φ_p average of the master formula equals the analytic ⟨F⟩₁. dσ equals
-  the C++ `calc_dsigma_unpol` expression exactly.
+  the C++ `calc_dsigma_unpol` expression exactly. Neutron tagging (`tagged="n"`) is
+  tested against proton tagging: same LF distributions, and each structure function
+  scales with the ratio of the proton/neutron input it contains.
 - **Notebook.** It executes cleanly in Jupyter (kernel "Python (taggedpd)", local
   `.venv`). Figs. 3–8, 10, 11, 13, 14, 16 and 17 agree with the paper; Figs. 9, 12 and 15
   differ for the reasons below.

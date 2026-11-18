@@ -198,3 +198,53 @@ def test_unphysical_kinematics_give_zero(model):
     kin = Kinematics.from_y(np.array([0.1, 0.1]), 3.0, np.array([0.5, 1.3]))
     out = model.dsigma(kin, 1.0, 0.1)
     assert out[0] > 0 and out[1] == 0.0 and np.all(np.isfinite(out))
+
+
+# ---------------------------------------------------------------------------
+# proton vs neutron tagging
+# ---------------------------------------------------------------------------
+def test_tagging_switch_swaps_active_nucleon(model):
+    """tagged="n" uses the proton structure functions with the same deuteron LF distributions.
+
+    Every tagged structure function is (deuteron factor) x (one nucleon input), so the
+    n-tagged / p-tagged ratio must equal the ratio of the corresponding proton / neutron input.
+    """
+    n_tag = TaggedDIS("AV18", structure=model.structure, tagged="n")
+    assert (model.tagged, model.active) == ("p", "n") and (n_tag.tagged, n_tag.active) == ("n", "p")
+    a, pT = GRID_A, GRID_PT
+    x, Q2 = 0.1 * (2 - a), 4.0
+    sp = model.structure_functions(x, Q2, a, pT)
+    sn = n_tag.structure_functions(x, Q2, a, pT)
+    # deuteron side identical
+    for name in ("UU", "TLL_U", "SL_SL", "ST_ST_par", "SL_ST"):
+        assert np.array_equal(getattr(sp["P"], name), getattr(sn["P"], name))
+    xn = sp["nucleon"]["xn"]
+    st = model.structure
+    FTp, FLp = st.FT_FL(xn, Q2, "p")
+    FTn, FLn = st.FT_FL(xn, Q2, "n")
+    F2p, F2n = st.F1F2(xn, Q2, "p")[1], st.F1F2(xn, Q2, "n")[1]
+    g1p, g1n = st.g1(xn, Q2, "p"), st.g1(xn, Q2, "n")
+    ggp, ggn = st.g1_plus_g2(xn, Q2, "p"), st.g1_plus_g2(xn, Q2, "n")
+    expect = {"UU_T": FTp / FTn, "UTLL_L": FLp / FLn, "UU_cos_phi": F2p / F2n, "UTTT_tw4": F2p / F2n,
+              "LSL": g1p / g1n, "LST_cos_phi_m_phiS": g1p / g1n, "LST_cos_phiS": ggp / ggn}
+    for key, ratio in expect.items():
+        m = np.abs(sp[key]) > 1e-12 * np.abs(sp["UU_T"])
+        assert np.allclose(sn[key][m] / sp[key][m], ratio[m], rtol=1e-12), key
+
+
+def test_tagging_switch_cross_section_and_asymmetry(model):
+    n_tag = TaggedDIS("AV18", structure=model.structure, tagged="n")
+    kin = Kinematics.from_s(0.1, 6.0, 800.0, dis_limit=True, per_nucleon=True)
+    st = model.structure
+    FTp, FLp = st.FT_FL(0.1, 6.0, "p")
+    FTn, FLn = st.FT_FL(0.1, 6.0, "n")
+    ratio = n_tag.dsigma(kin, 1.0, 0.1, phi_averaged=True) / model.dsigma(kin, 1.0, 0.1, phi_averaged=True)
+    e = kin.epsilon
+    assert ratio == pytest.approx((FTp + e * FLp) / (FTn + e * FLn), rel=1e-12)
+    # g1p > 0 > g1n at x_n = 0.1: the double-spin asymmetry flips sign
+    assert model.vector_asymmetry(kin, 1.0, 0.1) < 0 < n_tag.vector_asymmetry(kin, 1.0, 0.1)
+
+
+def test_tagging_switch_rejects_bad_value():
+    with pytest.raises(ValueError):
+        TaggedDIS("AV18", tagged="proton")
