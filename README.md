@@ -11,6 +11,8 @@ parts of `physics-code` (`Poldeut`, `TDeuteron`/`TYukawaPWF`, `NucleonStructure`
 at use in an MC event generator. There is no numerical integration at run time: about
 3 µs per event, vectorized.
 
+Development history, validation details and open items: [docs/DEVELOPMENT_NOTES.md](docs/DEVELOPMENT_NOTES.md).
+
 ## Install / test
 
 ```bash
