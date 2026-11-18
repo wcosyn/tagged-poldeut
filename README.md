@@ -107,7 +107,8 @@ PRD 80, 034030 (2009)).
 * LF distributions vs. C++ `getLFdistributions_new`, all 9 functions on the full
   (α_p, p_T) grid for AV18 / CD-Bonn / Paris: median relative difference ~10⁻⁵. The
   C++ interpolates the wave function on a 1 MeV grid and prints 6 significant digits.
-* F₂, g₁ vs. C++ `NucleonStructure`: ~10⁻⁶. WW g₁+g₂ vs. adaptive quadrature: ~10⁻⁴.
+* F₂, g₁ vs. C++ `NucleonStructure`: ~10⁻⁶. WW g₁+g₂ vs. adaptive quadrature and vs.
+  the fixed C++: ~10⁻⁴.
 * Sum rules (4.23)–(4.25) and Table III integrals: I_[SL] = 0.911, δ∥ = 0.125,
   δ⊥ = 0.0513, ε_[SL] = −0.0571 (paper −0.0568), ε_[ST] = 0.0550.
 * x-integrated momentum (5.19), spin (5.29) and Burkhardt–Cottingham (5.34) sum rules
@@ -118,14 +119,19 @@ PRD 80, 034030 (2009)).
 
 ## Issues found in existing material while porting
 
-1. **Fig. 12 is ~30% too small.** The plot scripts `tagdeut_ALL_ALT.py`,
-   `tagdeut_ALL_ALT_pt.py` and `tagdeut_ALL_g2.py` use `gamma = 2.*x_n*0.93/Q2`, which
-   should be `/np.sqrt(Q2)`. On top of that, the C++ WW integral
-   `getG1plusg2_grsv2000` (a 101-point left Riemann sum) overestimates |g₁+g₂| by 7.5%
-   at x = 0.1, and by a factor ~3 at x = 0.002. Correct value at α_p = 1, p_T = 0:
-   0.0098 (paper: ≈0.0075). `GRSV2000Structure(ww="cpp")` reproduces the old numbers.
-2. **Figs. 9 and 15 are 10× too large.** `tagdeut_unpolcross_log.py` and
-   `tagdeut_unpolcross_ndep.py` convert to nb with `0.197*0.197*10E07`; `10E07` is 10⁸.
+Items 1 and 2 are fixed in the plot scripts, the C++ and the data (see
+[docs/DEVELOPMENT_NOTES.md](docs/DEVELOPMENT_NOTES.md#status-of-fixes)); the paper's figures
+still need to be regenerated from them.
+
+1. **Fig. 12 was ~30% too small** in the draft. The plot scripts `tagdeut_ALL_ALT.py`,
+   `tagdeut_ALL_ALT_pt.py` and `tagdeut_ALL_g2.py` used `gamma = 2.*x_n*0.93/Q2` instead
+   of `/np.sqrt(Q2)`. On top of that, the C++ WW integral `getG1plusg2_grsv2000` was a
+   101-point left Riemann sum that overestimated |g₁+g₂| by 7.5% at x = 0.1, and by a
+   factor ~3 at x = 0.002 (fixed in physics-code commit `e9d1e6a`). Correct value at
+   α_p = 1, p_T = 0: 0.0098 (draft: ≈0.0075). `GRSV2000Structure(ww="cpp")` reproduces
+   the old C++ numbers.
+2. **Figs. 9 and 15 were 10× too large.** `tagdeut_unpolcross_log.py` and
+   `tagdeut_unpolcross_ndep.py` converted to nb with `0.197*0.197*10E07`; `10E07` is 10⁸.
    The model ratio in Fig. 15 is unaffected. Also, "s = 800 GeV²" there is the
    **electron–nucleon** invariant (5×41 GeV), which is what gives ε = 0.98; use
    `Kinematics.from_s(..., per_nucleon=True)`.

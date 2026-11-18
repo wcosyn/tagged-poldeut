@@ -345,10 +345,11 @@ class GRSV2000Structure(NucleonStructure):
         Number of log-spaced x nodes for the WW table (default 400).
     ww : {"exact", "cpp"}
         ``"exact"`` (default): accurate WW integral (agrees with adaptive
-        quadrature to ~1e-4). ``"cpp"``: reproduce the 101-point left Riemann
-        sum of physics-code ``NucleonStructure::getG1plusg2_grsv2000``, which
-        is inaccurate at small x (-7.5% at x=0.1, factor ~3 at x=0.002); only
-        meant for cross-checks against existing C++ output.
+        quadrature to ~1e-4; agrees with physics-code since commit e9d1e6a).
+        ``"cpp"``: reproduce the 101-point left Riemann sum that physics-code
+        ``getG1plusg2_grsv2000`` used *before* that fix, which overestimates
+        |g1+g2| (7.5% at x=0.1, factor ~3 at x=0.002). Only meant for
+        reproducing older C++ output, e.g. the draft's Fig. 12.
     """
 
     name = "GRSV2000-LO"

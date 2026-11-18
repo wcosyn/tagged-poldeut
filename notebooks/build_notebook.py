@@ -312,11 +312,12 @@ fig.tight_layout(); save(fig, 'fig11_16')
 md(r"""
 ### Fig. 12 — transversely polarized ratio $F^{\cos\phi_S}_{[LS_T]D}/\Sigma_\perp F_D$ (Eq. 6.10b)
 
-**Discrepancy with the paper figure.** The plot scripts used for Fig. 12
-(`tagdeut_ALL_ALT*.py`) compute $\gamma_n$ as `2*x_n*0.93/Q2` instead of $2x_nm/Q$
-(Eq. 5.22), and take $g_1+g_2$ from the C++ Wandzura–Wilczek routine, a 101-point Riemann sum
-that overestimates $|g_1+g_2|$ by 7.5% at $x = 0.1$. Together these make the published curves
-~30% too small. Solid: correct ($\gamma_n = 2x_nm/Q$, accurate WW). Thin dotted: emulating the
+**Discrepancy with the draft figure.** The plot scripts used for Fig. 12
+(`tagdeut_ALL_ALT*.py`) computed $\gamma_n$ as `2*x_n*0.93/Q2` instead of $2x_nm/Q$
+(Eq. 5.22), and took $g_1+g_2$ from the then C++ Wandzura–Wilczek routine, a 101-point Riemann
+sum that overestimates $|g_1+g_2|$ by 7.5% at $x = 0.1$. Together these made the draft curves
+~30% too small. Both are fixed now (scripts corrected, C++ WW fixed in physics-code `e9d1e6a`,
+`neutron_SF*.txt` regenerated); the corrected scripts reproduce the solid curves. Solid: correct ($\gamma_n = 2x_nm/Q$, accurate WW). Thin dotted: emulating the
 script (`ww='cpp'`, $\gamma_n \to 2x_n\cdot0.93/Q^2$), which reproduces the paper's values
 (e.g. ≈0.0075 at $\alpha_p = 1$, $p_{pT} = 0$).
 """)

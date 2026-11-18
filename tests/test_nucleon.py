@@ -14,7 +14,14 @@ REF = os.path.join(os.path.dirname(__file__), "reference")
 
 @pytest.fixture(scope="module")
 def cppref():
+    """physics-code neutron_sf output after the WW fix (commit e9d1e6a)."""
     return np.loadtxt(os.path.join(REF, "neutron_SF.txt.gz"))
+
+
+@pytest.fixture(scope="module")
+def cppref_old():
+    """physics-code output with the old 101-point Riemann-sum WW (pre-e9d1e6a)."""
+    return np.loadtxt(os.path.join(REF, "neutron_SF_oldWW.txt.gz"))
 
 
 def test_regression_unpolarized(cppref):
@@ -27,11 +34,19 @@ def test_regression_unpolarized(cppref):
     assert np.allclose(FL, cppref[:, 5], rtol=1e-3, atol=1e-5)
 
 
-def test_regression_g1_and_cpp_ww(cppref):
+def test_regression_g1_and_ww(cppref):
+    """g1 and the accurate WW g1+g2 vs the fixed C++ (both independent quadratures)."""
     Q2, x = cppref[:, 0], cppref[:, 1]
-    s = GRSV2000Structure(ww="cpp")
+    s = GRSV2000Structure()
     assert np.allclose(s.g1(x, Q2, "n"), cppref[:, 6], rtol=1e-4, atol=1e-6)
-    assert np.allclose(s.g1_plus_g2(x, Q2, "n"), cppref[:, 7], rtol=1e-4, atol=1e-6)
+    assert np.allclose(s.g1_plus_g2(x, Q2, "n"), cppref[:, 7], rtol=1e-3, atol=1e-5)
+
+
+def test_old_cpp_ww_emulation(cppref_old):
+    """ww="cpp" reproduces the pre-fix C++ Riemann sum (used for the draft's Fig. 12)."""
+    Q2, x = cppref_old[:, 0], cppref_old[:, 1]
+    s = GRSV2000Structure(ww="cpp")
+    assert np.allclose(s.g1_plus_g2(x, Q2, "n"), cppref_old[:, 7], rtol=1e-4, atol=1e-6)
 
 
 @pytest.mark.parametrize("nuc", ["n", "p"])

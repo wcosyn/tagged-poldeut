@@ -27,7 +27,7 @@ of an MC generator. The requirements were:
 | g1 input | GRSV2000 LO (the grid already in `physics-code/share/grsv`), behind a pluggable interface, plus an LHAPDF backend | It is what the C++, and therefore the figures, actually use. The paper text says DSSV09, a different fit. |
 | R = σ_L/σ_T | constant R = 0.18 by default; E143 `r1998` available | matches Sec. VI A of the paper |
 | F1 target-mass factor | (1+γ²) included by default (`target_mass=True`) | the C++ code that produced the figures includes it; `False` gives the strict DIS limit |
-| WW g1+g2 | accurate tabulated integral by default; `ww="cpp"` reproduces the C++ Riemann sum | the C++ sum is inaccurate (see issues below) |
+| WW g1+g2 | accurate tabulated integral by default; `ww="cpp"` reproduces the old C++ Riemann sum | the old C++ sum was inaccurate (issue 1 below, now fixed in physics-code) |
 | Master formula | taken from Part I Eqs. (4.36)–(4.39) | the paper only quotes it |
 | Wave functions | used as published, not rescaled to norm 1 | the norms are 1 to within 2×10⁻⁴; this keeps agreement with the C++ |
 
@@ -59,7 +59,11 @@ Reference data in `tests/reference/` is subsampled C++ output: `lf_dens_24_*_fin
   and (4.24) equal the wave-function norm exactly. Note that AV18 has a slow high-k tail,
   with 4×10⁻⁵ of the norm above 3 GeV.
 - **Nucleon SFs vs C++.** F2 and g1 agree to ~10⁻⁶. F1 agrees to 10⁻⁴ with the target-mass
-  factor. The WW table agrees with adaptive quadrature to ~10⁻⁴.
+  factor. The WW table agrees with adaptive quadrature to ~10⁻⁴, and with the fixed C++
+  (`tests/reference/neutron_SF.txt.gz`) to ~10⁻⁴ (up to ~10⁻⁵ absolute at the sign change
+  of g1+g2 near x ≈ 0.35, where the C++ is the more accurate of the two).
+  `tests/reference/neutron_SF_oldWW.txt.gz` keeps the pre-fix C++ output, reproduced by
+  `ww="cpp"`.
 - **Cross section.** The x-integrated momentum (5.19), spin (5.29) and Burkhardt–Cottingham
   (5.34) sum rules hold. These are tested with analytic toy nucleon structure functions,
   so the expected values are exact. The closed-form asymmetries (6.4), (6.8), (6.12) and
@@ -76,11 +80,11 @@ Reference data in `tests/reference/` is subsampled C++ output: `lf_dens_24_*_fin
 These affect the paper draft and should be fixed before publication.
 
 1. **Fig. 12 is ~30% too small.** `tagdeut_ALL_ALT.py`, `tagdeut_ALL_ALT_pt.py` and
-   `tagdeut_ALL_g2.py` use `gamma = 2.*x_n*0.93/Q2`, which should be `/np.sqrt(Q2)`. On
+   `tagdeut_ALL_g2.py` used `gamma = 2.*x_n*0.93/Q2`, which should be `/np.sqrt(Q2)`. On
    top of that, `NucleonStructure::getG1plusg2_grsv2000` (a 101-point left Riemann sum)
-   overestimates |g₁+g₂| by 7.5% at x = 0.1 and by ~3× at x = 0.002. At α_p = 1,
+   overestimated |g₁+g₂| by 7.5% at x = 0.1 and by ~3× at x = 0.002. At α_p = 1,
    p_T = 0 the correct value is 0.0098; the figure shows ≈0.0075. The g2 figure from
-   `tagdeut_ALL_g2.py` is affected in the same way.
+   `tagdeut_ALL_g2.py` is affected in the same way. *(Fixed, see below.)*
 2. **Figs. 9 and 15 are 10× too large.** `tagdeut_unpolcross_log.py` and
    `tagdeut_unpolcross_ndep.py` convert to nb with `0.197*0.197*10E07`; `10E07` is 10⁸,
    where the conversion needs 10⁷. The same factor is in `tagdeut_obs.py` and
@@ -96,6 +100,43 @@ These affect the paper draft and should be fixed before publication.
    has cos(3φ_p − 2φ_TT), which is what is used here.
 7. **Table III, ω₂(AV18) = 0.0576.** The parametrization gives 0.0578 exactly; a 1.2 GeV
    cutoff gives 0.0577. The origin of the difference is unclear.
+
+## Status of fixes
+
+State on 2026-11-18. Issues 1 and 2 are fixed at the source; the figures themselves have
+not been regenerated yet.
+
+- **Plot scripts** (`~/Calculations/poldeut/plots`, not under version control; originals in
+  `plots/backup_2026-11-18_before_fixes/`):
+  - γ_n → `2*x_n*m/np.sqrt(Q2)` in `tagdeut_ALL_ALT.py`, `tagdeut_ALL_ALT_pt.py`,
+    `tagdeut_ALL_g2.py` and `tagdeut_ALL_nucldep.py`;
+  - `tagdeut_ALT_study.py`: the same √Q² fix in γ and γ_n, and γ → γ_n in the `F_LST`
+    lines. That last change follows Eq. (5.27), where the neutron structure function
+    carries γ_n; it is a judgement call, so check it against the intent of that study;
+  - `10E07` → `1E07` in `tagdeut_unpolcross_log.py`, `tagdeut_unpolcross_ndep.py`,
+    `tagdeut_obs.py` and `tagdeut_obs_v2.py`.
+- **C++** (physics-code, branch `fix-ww-integral`, commit `e9d1e6a`, not yet merged or
+  pushed): Gauss–Legendre WW integral in both `NucleonStructure` and the older
+  `NuclStructure` (used by `Poldeut` and `DeuteronStructure`); new table generator
+  `progs/poldeut/neutron_sf`.
+- **Data**: `~/Calculations/poldeut/results/neutron_SF.txt` and `neutron_SF_more.txt`
+  regenerated with `neutron_sf 100` / `neutron_sf 300`. Only the g1+g2 column changed.
+  Old files in `results/backup_2026-11-18_old_WW/`.
+- **Check**: the fixed `tagdeut_ALL_ALT.py` on the new data agrees with `taggedpd` for
+  Fig. 12 to 4 digits (0.00985 at α_p = 1, p_T = 0); the fixed `tagdeut_unpolcross_log.py`
+  agrees with `taggedpd` for Fig. 9 to 0.3% (rounded ħc and α in the script).
+
+Still open:
+
+- Regenerate Figs. 9, 12 and 15 (and the g2 study figure) for the paper.
+- matplotlib `usetex` needs the `cm-super` fonts, which are missing on the upgraded system
+  (`sudo apt install cm-super`); without them some figures fail to save
+  (e.g. `ALT_nodepol_v2.pdf`).
+- physics-code was reinstalled into `lib/` and `bin/` after the OS upgrade (the old
+  install linked GSL 27, which is gone). `GPD_Partons` and `progs/GPD` do not build:
+  the installed PARTONS headers need SFML, and `diDVCS_gen_gridonly` lacks the ROOT
+  include path. `lib/libGPD.so` and `bin/conv_T_test` are therefore still the old,
+  non-loading builds.
 
 ## Known limitations and open items
 
