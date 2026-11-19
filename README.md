@@ -16,8 +16,10 @@ Development history, validation details and open items: [docs/DEVELOPMENT_NOTES.
 ## Install / test
 
 ```bash
-pip install -e .            # runtime: numpy only
-python -m pytest            # needs pytest + scipy
+python3 -m venv --system-site-packages .venv   # system-site: sees the lhapdf module, if installed
+source .venv/bin/activate
+pip install -e ".[test]"    # runtime: numpy only; test adds pytest + scipy
+python -m pytest            # LHAPDF tests skip without lhapdf or the CT18LO / NNPDFpol11_100 sets
 python notebooks/build_notebook.py --run   # regenerate notebook + PNGs in notebooks/figures/
 python notebooks/build_inclusive_notebook.py --run   # inclusive SFs / photoabsorption / Christy-Bosted notebook
 ```
@@ -116,8 +118,9 @@ with g₁+g₂ from Wandzura–Wilczek tabulated once at start-up (~0.1 s).
 To use another parametrization, subclass `NucleonStructure` and implement `F1F2`, `g1` and
 `g1_plus_g2`. `CombinedStructure(unpol, pol)` mixes providers, and `GriddedStructure(p)`
 tabulates any provider for speed. `LHAPDFStructure("CT18LO", "NNPDFpol11_100")` gives LO
-parton-model F₂ and g₁ from LHAPDF6 sets. It is untested here because the `lhapdf` module
-was not installed.
+parton-model F₂ and g₁ from LHAPDF6 sets (tested with those two; needs LHAPDF's python
+bindings and `lhapdf install CT18LO NNPDFpol11_100`). Construction takes ~1 s (WW table);
+evaluation calls LHAPDF each time, so wrap it in `GriddedStructure` for event generation.
 
 Note: the paper's text quotes DSSV09 for g₁ⁿ, but the C++ code (and thus the figures)
 uses GRSV2000 LO. These are different fits (GRSV2000: PRD 63, 094005 (2001); DSSV09:

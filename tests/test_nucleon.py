@@ -91,8 +91,3 @@ def test_gridded_wrapper_reproduces_provider():
         assert np.allclose(grid.g1(x, Q2, nuc), base.g1(x, Q2, nuc), rtol=2e-2, atol=1e-4)
         assert np.allclose(grid.g1_plus_g2(x, Q2, nuc), base.g1_plus_g2(x, Q2, nuc), rtol=2e-2, atol=1e-4)
     assert np.allclose(grid.FT_FL(x, Q2)[1], base.FT_FL(x, Q2)[1], rtol=3e-2)
-
-
-def test_lhapdf_backend_optional():
-    lhapdf = pytest.importorskip("lhapdf")  # noqa: F841
-    pytest.skip("LHAPDF sets are installation dependent; exercise manually")

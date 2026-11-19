@@ -342,8 +342,14 @@ return NaN by default. That region is reserved for a Regge-type model.
 
 - Impulse approximation only: no FSI, so the T-odd structures are zero. The
   power-suppressed structure functions are rough estimates, as the paper states.
-- `LHAPDFStructure` is untested because the `lhapdf` module was not available. For event
-  generation wrap it in `GriddedStructure`.
+- `LHAPDFStructure` is tested (`tests/test_lhapdf.py`) with CT18LO and NNPDFpol11_100 only:
+  parton-model sums and isospin against direct LHAPDF calls, the WW table against
+  quadrature, gridded vs direct, and rough agreement with SLAC F₂ / GRSV2000 g₁ (within
+  ~14% for 0.1 ≤ x ≤ 0.5 at Q² = 10). Testing it fixed two bugs: a scalar x with an array of
+  Q² raised, and scalars came back as shape-(1,) arrays. LHAPDF is now called vectorized
+  (construction 8 s → 0.7 s). It is LO only (no NLO coefficient functions, no target-mass
+  factor), and uses LHAPDF's extrapolation outside a set's range. For event generation wrap
+  it in `GriddedStructure`.
 - DSSV09 is not implemented. Adding it needs its grids, wrapped as a `NucleonStructure`
   subclass.
 - The LF wave function uses the nonrelativistic approximation, Eq. (3.24), which the
