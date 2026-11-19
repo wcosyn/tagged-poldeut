@@ -130,7 +130,34 @@ from taggedpd import photoproduction
 sig = photoproduction(W, "n")                         # sigma_T(gamma n) [microbarn], Q2 = 0
 F1d = photoproduction(W, "d", quantity="F1", Q2=0.5)  # deuteron, per nucleus
 sig, src = photoproduction(W, "p", return_source=True)  # which parametrization was used per point
+FT, FL = (photoproduction(W, "p", q, Q2=1.0) for q in ("F_T", "F_L"))   # paper conventions
 ```
+
+**Which structure function is returned.** Papers disagree on what "F_T" and "F_L" mean
+(factors of x and 2), so every option of `quantity=` is defined explicitly below. All of
+them are computed from the fit's own F1 and F2, with the nucleon mass the fit uses in
+ν = (W² − M² + Q²)/2M, x = Q²/2Mν and γ² = 4M²x²/Q² = Q²/ν².
+
+| `quantity` | definition | notes |
+|---|---|---|
+| `"sigma_T"` (default) | σ_T [µb] | Hand flux |
+| `"sigma_L"` | R σ_T [µb] | |
+| `"R"` | σ_L/σ_T = F_L/F_T | |
+| `"F1"` | σ_T (W² − M²)/(8π²α) | the fits' native output |
+| `"F2"` | F2 | |
+| `"F_T"` | F_[UU,T] = 2F1 | paper / Part I convention |
+| `"F_L"` | F_[UU,L] = (1+γ²)F2/x − 2F1 = R F_T | exact relation, including target mass |
+| `"F_L_scaling"` | F2/x − 2F1 = F_T (R − γ²)/(1+γ²) | scaling-limit relation (γ → 0), paper Eq. (5.10) |
+| `"xF_L"` | (1+γ²)F2 − 2xF1 = x F_[UU,L] | the "F_L" of Christy–Bosted/SIMC and many DIS papers |
+
+In the convention F_T = 2xF1 found elsewhere, with F_L = `"xF_L"` so that
+(1+γ²)F2 = F_T + F_L, both functions are x times the paper's. In the resonance region
+γ² is not small (≈ 0.5 at Q² = 1 GeV², W = 1.5 GeV), so `"F_L_scaling"` differs from
+`"F_L"` and can even be negative: −0.43 vs +0.056 at the Δ for Q² = 1 GeV². Use
+`"F_L"` for the physical longitudinal structure function. At Q² = 0, F2, R, σ_L and all
+F_L variants are exactly 0. The deuteron values are per nucleus, with x per nucleon.
+A model that provides only σ_T (for example a Regge form you add) can return F2- and
+F_L-type quantities only at Q² = 0; at Q² > 0 it raises `NotImplementedError`.
 
 `taggedpd.christy_bosted` is a vectorized port of `F1F209.f`, the Fortran fits by
 P. E. Bosted and M. E. Christy. **Please cite the original work:**

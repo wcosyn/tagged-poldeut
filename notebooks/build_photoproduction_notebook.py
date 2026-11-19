@@ -188,6 +188,31 @@ axs[0].set_ylabel('$F_1$'); axs[0].legend()
 fig.tight_layout(); save(fig, 'pp_F1_Q2')
 """)
 
+md(r"""
+### Which "$F_T$", "$F_L$"? — conventions
+
+`photoproduction(..., quantity=...)` returns, besides $\sigma_T$ and $F_1$: `"F_T"` $=F_{[UU,T]}=2F_1$
+and `"F_L"` $=F_{[UU,L]}=(1+\gamma^2)F_2/x-2F_1=R\,F_T$, both in the paper's (Part I) convention;
+`"F_L_scaling"` $=F_2/x-2F_1$, the scaling-limit relation of Eq. (5.10); `"xF_L"`
+$=(1+\gamma^2)F_2-2xF_1$, the "$F_L$" of Christy–Bosted and many DIS papers; and also `"F2"`, `"R"`,
+`"sigma_L"`. Here $\gamma^2=4M^2x^2/Q^2=Q^2/\nu^2$. In the resonance region $\gamma^2$ is not small,
+so the scaling-limit relation differs substantially from the exact one and even turns negative
+(below). At $Q^2=0$ all $F_L$-type quantities vanish.
+""")
+
+code(r"""
+W = np.linspace(1.1, 3.0, 600)
+fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+for ax, Q2 in zip(axs, (0.5, 2.0)):
+    for q, ls in (('F_T', '-'), ('F_L', '-'), ('F_L_scaling', '--'), ('xF_L', ':')):
+        ax.plot(W, photoproduction(W, 'p', q, Q2=Q2), ls, label=q)
+    ax.axhline(0, c='0.6', lw=0.8)
+    ax.set_title(f'proton, 2009 fit, $Q^2$ = {Q2} GeV$^2$'); ax.set_xlabel('$W$ [GeV]'); ax.legend()
+fig.tight_layout(); save(fig, 'pp_FT_FL_conventions')
+print('check F_L = R F_T:', np.allclose(photoproduction(W, 'p', 'F_L', Q2=2.0),
+      photoproduction(W, 'p', 'R', Q2=2.0) * photoproduction(W, 'p', 'F_T', Q2=2.0)))
+""")
+
 # ---------------------------------------------------------------------------
 md(r"""
 ## 4. The approach to $Q^2 = 0$

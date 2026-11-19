@@ -64,6 +64,47 @@ Conventions
   absorption cross section; sigma_L and F2 vanish there.
 * The deuteron result is the *inelastic* (pion-production) part only:
   photodisintegration gamma d -> p n is not included.
+
+Structure-function conventions (``quantity=``)
+----------------------------------------------
+Conventions for "F_T" and "F_L" differ between papers by factors of x and 2, so
+every option is defined explicitly here. All are built from the model's own F1, F2
+and the nucleon mass M that the model uses kinematically (:meth:`PhotoabsorptionModel.kin_mass`):
+nu = (W^2 - M^2 + Q^2)/2M, x = Q^2/(2 M nu), gamma^2 = 4 M^2 x^2/Q^2 = Q^2/nu^2.
+
+=============== ========================================== ==================================
+quantity        definition                                  remarks
+=============== ========================================== ==================================
+"sigma_T"       transverse cross section [microbarn]         Hand flux K = (W^2 - M^2)/2M
+"sigma_L"       R sigma_T [microbarn]
+"R"             sigma_L/sigma_T = F_L/F_T
+"F1"            sigma_T (W^2 - M^2)/(8 pi^2 alpha)           fits' native output
+"F2"            F2                                           0 at Q^2 = 0
+"F_T"           F_[UU,T] = 2 F1                              paper / Part I convention
+"F_L"           F_[UU,L] = (1 + gamma^2) F2/x - 2 F1         exact (target-mass) relation;
+                = R F_T                                      Part I inclusive limit
+"F_L_scaling"   F2/x - 2 F1                                  scaling-limit relation
+                = F_T (R - gamma^2)/(1 + gamma^2)            (gamma -> 0), paper Eq. (5.10)
+"xF_L"          (1 + gamma^2) F2 - 2 x F1 = 2 x F1 R         the "F_L" of Christy-Bosted /
+                = x F_[UU,L]                                 SIMC and of many DIS papers
+=============== ========================================== ==================================
+
+Notes:
+
+* F_T and F_L follow the paper (dimension of F1). Elsewhere one also finds
+  F_T = 2xF1 with F_L = (1+gamma^2)F2 - 2xF1 (= "xF_L" here), such that
+  (1+gamma^2) F2 = F_T + F_L. That convention is x times the one used here.
+* "F_L_scaling" is what the paper's Eq. (5.10) gives with F1, F2 as input; it
+  equals F_L only when gamma^2 << 1. In the resonance region at low Q^2,
+  gamma^2 = Q^2/nu^2 is *not* small (e.g. ~0.5 at Q^2 = 1, W = 1.5), and
+  F_L_scaling can even be negative where gamma^2 > R. Use "F_L" for the
+  physical longitudinal structure function.
+* At Q^2 = 0 all F_L-type quantities, F2, R and sigma_L are returned as exactly 0
+  (their limits; x = 0 there). Models that only provide sigma_T/F1 (e.g. a
+  user-supplied Regge form) give F2- and F_L-type quantities only at Q^2 = 0 and
+  raise ``NotImplementedError`` otherwise.
+* Deuteron: per nucleus; x and gamma use the fit's nucleon mass (2009: 0.93828;
+  2021: the average nucleon mass), i.e. x is per nucleon, 0 < x < 2.
 """
 
 from __future__ import annotations
@@ -77,7 +118,7 @@ from . import christy_bosted21 as cb21
 
 __all__ = ["PhotoabsorptionModel", "ChristyBosted", "ChristyBosted2021", "BelowThreshold",
            "Piecewise", "Blend", "default_photoabsorption", "photoproduction", "W_from_nu",
-           "nu_from_W", "PION_THRESHOLD"]
+           "nu_from_W", "PION_THRESHOLD", "QUANTITIES"]
 
 _M = cb.MP_CB
 #: free-nucleon pion-production threshold W = m_p + m_pi0 [GeV], as in the fits
@@ -136,11 +177,73 @@ class PhotoabsorptionModel:
         W = np.asarray(W, float)
         return cb.F1_from_sigmaT(self.sigma_T(W, Q2, target), W * W, self.flux_mass)
 
+    def kin_mass(self, target):
+        """Nucleon mass M the model uses for nu = (W^2 - M^2 + Q^2)/2M, x = Q^2/2M nu, gamma^2 = Q^2/nu^2."""
+        return _M
+
+    def F1F2(self, W, Q2, target):
+        """(F1, F2). Default for models that only provide sigma_T/F1: F2 is known only at
+        Q^2 = 0 (where it vanishes); at Q^2 > 0 this raises NotImplementedError."""
+        W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
+        if np.any(Q2 > 0):
+            raise NotImplementedError(f"{self.name!r} provides only sigma_T/F1; F2 and F_L-type "
+                                      "quantities are available only at Q2 = 0")
+        return self.F1(W, Q2, target), np.zeros(W.shape)
+
+    def evaluate(self, quantity, W, Q2, target):
+        """Any quantity of :data:`QUANTITIES`, from this model's F1, F2 and :meth:`kin_mass`."""
+        if quantity not in QUANTITIES:
+            raise ValueError(f"quantity must be one of {sorted(QUANTITIES)}, got {quantity!r}")
+        t = _norm_target(target)
+        W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
+        if quantity == "sigma_T":
+            return self.sigma_T(W, Q2, t)
+        if quantity == "F1":
+            return self.F1(W, Q2, t)
+        if quantity == "F_T":
+            return 2.0 * self.F1(W, Q2, t)
+        F1, F2 = self.F1F2(W, Q2, t)
+        if quantity == "F2":
+            return F2
+        M = self.kin_mass(t)
+        pos = Q2 > 0
+        with np.errstate(divide="ignore", invalid="ignore"):
+            nu = (W * W - M * M + Q2) / (2.0 * M)
+            x = Q2 / (2.0 * M * nu)
+            g2 = Q2 / nu**2
+            FL = np.where(pos, (1.0 + g2) * F2 / x - 2.0 * F1, 0.0)
+            if quantity == "F_L":
+                return FL
+            if quantity == "F_L_scaling":
+                return np.where(pos, F2 / x - 2.0 * F1, 0.0)
+            if quantity == "xF_L":
+                return np.where(pos, (1.0 + g2) * F2 - 2.0 * x * F1, 0.0)
+            R = np.where(F1 != 0, FL / (2.0 * F1), 0.0)
+        if quantity == "R":
+            return R
+        return R * self.sigma_T(W, Q2, t)          # sigma_L
+
     def supports(self, target):
         return _norm_target(target) in self.targets
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.name!r}>"
+
+
+#: quantities :func:`photoproduction` / :meth:`PhotoabsorptionModel.evaluate` can return.
+#: See the module docstring, "Structure-function conventions".
+QUANTITIES = {
+    "sigma_T": "transverse cross section [microbarn] (Hand flux)",
+    "sigma_L": "longitudinal cross section [microbarn] = R sigma_T",
+    "R": "sigma_L / sigma_T = F_L / F_T",
+    "F1": "F1 = sigma_T (W^2 - M^2) / (8 pi^2 alpha)",
+    "F2": "F2",
+    "F_T": "F_[UU,T] = 2 F1  (paper / Part I convention)",
+    "F_L": "F_[UU,L] = (1 + gamma^2) F2 / x - 2 F1 = R F_T  (exact, with gamma^2 = 4M^2x^2/Q^2)",
+    "F_L_scaling": "F2 / x - 2 F1  (scaling-limit relation gamma -> 0, paper Eq. (5.10))",
+    "xF_L": "x F_[UU,L] = (1 + gamma^2) F2 - 2 x F1 = 2 x F1 R  (the 'F_L' of Christy-Bosted / SIMC, "
+            "of many DIS papers)",
+}
 
 
 # ===========================================================================
@@ -194,6 +297,13 @@ class ChristyBosted(PhotoabsorptionModel):
         W = np.asarray(W, float)
         return cb.f1f2in09(_norm_target(target), Q2, W * W, binned=self.binned)
 
+    def F1F2(self, W, Q2, target):
+        return self.F1F2R(W, Q2, target)[:2]
+
+    def kin_mass(self, target):
+        """F1F2IN09 builds F2 with nu from PM = 0.93828 GeV, for p, n and d."""
+        return cb._PM
+
 
 class ChristyBosted2021(PhotoabsorptionModel):
     r"""**PRELIMINARY** Christy 2021 fit (F1F221 v1.0 prerelease 1), see :mod:`taggedpd.christy_bosted21`.
@@ -244,6 +354,10 @@ class ChristyBosted2021(PhotoabsorptionModel):
         W = np.asarray(W, float)
         return cb21.f1f2in21(_norm_target(target), Q2, W * W)
 
+    def kin_mass(self, target):
+        """SF uses M = 0.938272 for p and n; SMEARSUB the average nucleon mass for d."""
+        return cb21._MAVG if _norm_target(target) == "d" else cb21._MP_SF
+
     def sigma_T(self, W, Q2, target):
         """sigma_T [microbarn]: the fits' own sigma_T for p, n; RESCSD's conversion for d."""
         t = _norm_target(target)
@@ -272,12 +386,17 @@ class BelowThreshold(PhotoabsorptionModel):
     def sigma_T(self, W, Q2, target):
         return np.zeros(np.broadcast(np.asarray(W), np.asarray(Q2)).shape)
 
+    def F1F2(self, W, Q2, target):
+        z = np.zeros(np.broadcast(np.asarray(W), np.asarray(Q2)).shape)
+        return z, z.copy()
+
 
 class Blend(PhotoabsorptionModel):
     """Linear blend in W of two models over [W_lo, W_hi] (for smooth transitions).
 
-    ``sigma_T = (1-t) low + t high`` with t = (W - W_lo)/(W_hi - W_lo). Place it
-    before the two models in a :class:`Piecewise` list.
+    ``q = (1-t) q_low + t q_high`` with t = (W - W_lo)/(W_hi - W_lo), for every
+    quantity q separately (so the blended R is not exactly sigma_L/sigma_T of the
+    blended cross sections). Place it before the two models in a :class:`Piecewise` list.
     """
 
     def __init__(self, low, high, W_lo, W_hi, name=None):
@@ -291,8 +410,13 @@ class Blend(PhotoabsorptionModel):
 
     def sigma_T(self, W, Q2, target):
         W = np.asarray(W, float)
+        return self.evaluate("sigma_T", W, Q2, target)
+
+    def evaluate(self, quantity, W, Q2, target):
+        W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
         t = np.clip((W - self.W_lo) / (self.W_hi - self.W_lo), 0.0, 1.0)
-        return (1 - t) * self.low.sigma_T(W, Q2, target) + t * self.high.sigma_T(W, Q2, target)
+        return ((1 - t) * self.low.evaluate(quantity, W, Q2, target)
+                + t * self.high.evaluate(quantity, W, Q2, target))
 
 
 class Piecewise(PhotoabsorptionModel):
@@ -327,7 +451,9 @@ class Piecewise(PhotoabsorptionModel):
             which[free & m.domain(W, Q2, t)] = i
         return which
 
-    def _evaluate(self, method, W, Q2, target):
+    def _evaluate(self, quantity, W, Q2, target):
+        if quantity not in QUANTITIES:
+            raise ValueError(f"quantity must be one of {sorted(QUANTITIES)}, got {quantity!r}")
         t = _norm_target(target)
         W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
         which = self.assign(W, Q2, t)
@@ -339,14 +465,20 @@ class Piecewise(PhotoabsorptionModel):
         for i, m in enumerate(self.models):
             sel = which == i
             if np.any(sel):
-                out[sel] = getattr(m, method)(W[sel], Q2[sel], t)
+                out[sel] = m.evaluate(quantity, W[sel], Q2[sel], t)
         return out, which
+
+    def evaluate(self, quantity, W, Q2, target):
+        return self._evaluate(quantity, W, Q2, target)[0]
 
     def sigma_T(self, W, Q2, target):
         return self._evaluate("sigma_T", W, Q2, target)[0]
 
     def F1(self, W, Q2, target):
         return self._evaluate("F1", W, Q2, target)[0]
+
+    def F1F2(self, W, Q2, target):
+        return self._evaluate("F1", W, Q2, target)[0], self._evaluate("F2", W, Q2, target)[0]
 
     def domain(self, W, Q2, target):
         return self.assign(W, Q2, target) >= 0
@@ -397,14 +529,18 @@ _DEFAULT = None
 
 
 def photoproduction(W, target="p", quantity="sigma_T", Q2=0.0, model=None, return_source=False):
-    """Photoabsorption sigma_T [microbarn] or F1 for target "p", "n" or "d".
+    """Photoabsorption cross sections or structure functions for target "p", "n" or "d".
 
     Parameters
     ----------
     W : array_like
         c.m. energy [GeV] (for "d": free-proton W, see module docstring).
     target : {"p", "n", "d"}
-    quantity : {"sigma_T", "F1"}
+    quantity : str
+        One of :data:`QUANTITIES`: "sigma_T", "sigma_L" [microbarn], "R", "F1", "F2",
+        "F_T" (= 2F1), "F_L" (= (1+gamma^2)F2/x - 2F1 = R F_T), "F_L_scaling"
+        (= F2/x - 2F1), "xF_L" (= (1+gamma^2)F2 - 2xF1). See the module docstring
+        for the conventions; F_T, F_L follow the paper (Part I).
     Q2 : array_like
         Photon virtuality [GeV^2], default 0 (real photons).
     model : PhotoabsorptionModel, optional
@@ -418,8 +554,8 @@ def photoproduction(W, target="p", quantity="sigma_T", Q2=0.0, model=None, retur
         if _DEFAULT is None:
             _DEFAULT = default_photoabsorption()
         model = _DEFAULT
-    if quantity not in ("sigma_T", "F1"):
-        raise ValueError("quantity must be 'sigma_T' or 'F1'")
+    if quantity not in QUANTITIES:
+        raise ValueError(f"quantity must be one of {sorted(QUANTITIES)}, got {quantity!r}")
     if not model.supports(target):
         raise ValueError(f"model {model.name!r} does not describe target {target!r}")
     if isinstance(model, Piecewise):
@@ -429,7 +565,7 @@ def photoproduction(W, target="p", quantity="sigma_T", Q2=0.0, model=None, retur
             return val, names[which]
         return val
     W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
-    val = getattr(model, quantity)(W, Q2, _norm_target(target))
+    val = model.evaluate(quantity, W, Q2, _norm_target(target))
     val = np.where(model.domain(W, Q2, target), val, np.nan)
     if return_source:
         return val, np.where(np.isnan(val), "", model.name).astype(object)

@@ -258,6 +258,26 @@ use in published work; until then the 2009 fits remain the default and the refer
   deuteron has no strength below the free-nucleon threshold (no MEC).
 - **Speed.** p and n ~1 µs per point; the deuteron ~110 µs per point.
 
+### Structure-function conventions in `photoproduction` (added 2026-11-19)
+
+`quantity=` now also accepts `"sigma_L"`, `"R"`, `"F2"`, `"F_T"`, `"F_L"`, `"F_L_scaling"`
+and `"xF_L"`. The definitions are in the README table and in the `photoabsorption` module
+docstring.
+
+| Question | Decision | Rationale |
+|---|---|---|
+| Normalization of F_T and F_L | The paper's: F_T = 2F1, F_L = (1+γ²)F2/x − 2F1 | Matches `NucleonStructure.FT_FL` and the tagged-DIS code. The x-weighted F_L that Christy–Bosted and SIMC use is available as `"xF_L"` |
+| "With or without the scaling limit" | `"F_L"` is the exact relation, equal to R·F_T; `"F_L_scaling"` = F2/x − 2F1 is Eq. (5.10) | In the resonance region γ² = Q²/ν² is not small, and the scaling form can turn negative: −0.43 vs +0.056 at the Δ for Q² = 1 GeV² |
+| Mass in x, ν and γ | The mass each fit uses itself (`kin_mass`): 2009, 0.93828 for p, n and d; 2021, 0.938272 for p and n and the average nucleon mass for d | With this choice F_L = R·F_T holds to rounding against each fit's own R, and the deuteron `xF_L` reproduces RESCSD's FL |
+| Q² = 0 | F2, R, σ_L and all F_L variants are exactly 0 | These are the limits; x = 0 there |
+| Models that provide only σ_T | F_T works everywhere; F2- and F_L-type quantities only at Q² = 0, otherwise `NotImplementedError` | Avoids silently inventing an R for a future Regge model |
+| `Blend` | Interpolates each quantity separately | Simple. The blended R is then not exactly σ_L/σ_T of the blended cross sections; this is documented |
+
+Tests: `test_quantity_conventions_2009` (p, n, d at three values of Q²; every identity in
+the table to ≤10⁻⁹), `test_quantity_conventions_2021`,
+`test_scaling_relation_breaks_down_at_low_Q2`, `test_quantities_at_real_photon_point`,
+and two tests for models that provide only σ_T.
+
 ### Environment note
 
 On this machine `python3 -m venv` cannot bootstrap pip (`python3.12-venv` is not

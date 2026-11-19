@@ -152,7 +152,7 @@ def test_outside_policies():
     with pytest.raises(ValueError):
         photoproduction(1.5, "x")
     with pytest.raises(ValueError):
-        photoproduction(1.5, "p", quantity="F2")
+        photoproduction(1.5, "p", quantity="F_LT")
 
 
 class _ToyRegge(PhotoabsorptionModel):
@@ -234,3 +234,77 @@ def test_structure_provider():
     assert numeric and all(np.all(np.isfinite(v)) for v in numeric)
     kin = Kinematics.from_y(0.4, 2.0, 0.5)
     assert np.isfinite(model.reduced_cross_section(kin, 1.0, 0.1, 0.0))
+
+
+# ---------------------------------------------------------------------------
+# structure-function conventions (quantity=)
+# ---------------------------------------------------------------------------
+def _kin(W, Q2, M=cb._PM):
+    nu = (W**2 - M**2 + Q2) / (2 * M)
+    return Q2 / (2 * M * nu), Q2 / nu**2      # x, gamma^2
+
+
+@pytest.mark.parametrize("tgt", ["p", "n", "d"])
+def test_quantity_conventions_2009(tgt):
+    W = np.linspace(1.15, 2.9, 25)
+    for Q2 in (0.3, 1.0, 4.0):
+        F1, F2, R = cb.f1f2in09(tgt, Q2, W**2, binned=False)
+        q = {k: photoproduction(W, tgt, k, Q2=Q2) for k in
+             ("sigma_T", "sigma_L", "R", "F1", "F2", "F_T", "F_L", "F_L_scaling", "xF_L")}
+        x, g2 = _kin(W, Q2)
+        assert np.allclose(q["F1"], F1, rtol=1e-13) and np.allclose(q["F2"], F2, rtol=1e-13)
+        assert np.allclose(q["F_T"], 2 * F1, rtol=1e-13)
+        # F_L = (1+g^2)F2/x - 2F1 = R F_T, with the fit's own R
+        assert np.allclose(q["F_L"], (1 + g2) * F2 / x - 2 * F1, rtol=1e-10, atol=1e-14)
+        assert np.allclose(q["F_L"], R * q["F_T"], rtol=1e-10, atol=1e-14)
+        assert np.allclose(q["R"], R, rtol=1e-10, atol=1e-14)
+        assert np.allclose(q["sigma_L"], R * q["sigma_T"], rtol=1e-10, atol=1e-12)
+        # scaling-limit relation and x-weighted F_L
+        assert np.allclose(q["F_L_scaling"], F2 / x - 2 * F1, rtol=1e-10, atol=1e-14)
+        assert np.allclose(q["F_L_scaling"], q["F_T"] * (R - g2) / (1 + g2), rtol=1e-9, atol=1e-13)
+        assert np.allclose(q["xF_L"], x * q["F_L"], rtol=1e-10, atol=1e-14)
+        # (1 + gamma^2) F2 = x (F_T + F_L)
+        assert np.allclose((1 + g2) * F2, x * (q["F_T"] + q["F_L"]), rtol=1e-10)
+    if tgt == "p":
+        assert np.allclose(photoproduction(W, "p", "sigma_L", Q2=1.0), cb.christy507(W**2, 1.0)[3], rtol=1e-10)
+
+
+def test_scaling_relation_breaks_down_at_low_Q2():
+    """In the resonance region gamma^2 = Q^2/nu^2 is not small: F_L_scaling < 0 at the Delta, Q^2 = 1."""
+    assert photoproduction(1.232, "p", "F_L_scaling", Q2=1.0) < 0 < photoproduction(1.232, "p", "F_L", Q2=1.0)
+    # but the two agree when gamma^2 << 1 (large W at fixed Q^2)
+    a, b = photoproduction(2.9, "p", "F_L", Q2=0.3), photoproduction(2.9, "p", "F_L_scaling", Q2=0.3)
+    x, g2 = _kin(2.9, 0.3)
+    assert g2 < 0.02 and b == pytest.approx(a, rel=0.2)
+
+
+def test_quantities_at_real_photon_point():
+    W = np.linspace(1.1, 3.0, 20)
+    for tgt in "pnd":
+        for k in ("sigma_L", "R", "F2", "F_L", "F_L_scaling", "xF_L"):
+            v = photoproduction(W, tgt, k)
+            assert np.all(v == 0.0), (tgt, k)
+        assert np.allclose(photoproduction(W, tgt, "F_T"), 2 * photoproduction(W, tgt, "F1"))
+
+
+def test_quantities_for_sigmaT_only_model():
+    toy = _ToyRegge()
+    model = Piecewise([toy])
+    W = np.array([2.5, 3.0])
+    assert np.allclose(photoproduction(W, "p", "F_T", model=model),
+                       2 * cb.F1_from_sigmaT(toy.sigma_T(W, 0.0, "p"), W**2))
+    assert np.all(photoproduction(W, "p", "F_L", model=model) == 0.0)        # Q2 = 0: known
+    with pytest.raises(ValueError, match="quantity"):
+        photoproduction(W, "p", "FL", model=model)
+    blend = Blend(ChristyBosted(), toy, 2.0, 2.5)
+    assert blend.evaluate("F_T", 2.25, 0.0, "p") == pytest.approx(
+        0.5 * (photoproduction(2.25, "p", "F_T") + 2 * toy.F1(2.25, 0.0, "p")))
+
+
+def test_sigmaT_only_model_raises_for_F2_at_finite_Q2():
+    class Toy(_ToyRegge):
+        def domain(self, W, Q2, target):
+            W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
+            return W >= 2.0
+    with pytest.raises(NotImplementedError, match="only sigma_T"):
+        photoproduction(2.5, "p", "F_L", Q2=0.5, model=Piecewise([Toy()]))

@@ -147,3 +147,19 @@ def test_structure_provider_2021():
         # F_L from the fit's sigma_L/sigma_T equals ((1+gamma^2)F2 - 2xF1)/x of SF
         g2 = 1 + 4 * 0.938272**2 * x**2 / Q2
         assert np.allclose(FL, (g2 * F2 - 2 * x * F1) / x, rtol=2e-3)
+
+
+def test_quantity_conventions_2021():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", PreliminaryFitWarning)
+        m = default_photoabsorption(fit="2021")
+    W = np.linspace(1.15, 3.5, 15)
+    for Q2 in (0.02, 1.0, 5.0):
+        for tgt, (sT, sL) in (("p", c21.rescsp(W**2, Q2)), ("n", c21.rescsn(W**2, Q2))):
+            assert np.allclose(photoproduction(W, tgt, "R", Q2=Q2, model=m), sL / sT, rtol=1e-9)
+            assert np.allclose(photoproduction(W, tgt, "sigma_L", Q2=Q2, model=m), sL, rtol=1e-9)
+            assert np.allclose(photoproduction(W, tgt, "F_L", Q2=Q2, model=m),
+                               (sL / sT) * photoproduction(W, tgt, "F_T", Q2=Q2, model=m), rtol=1e-9)
+        F1d, F2d, FLd = c21.rescsd(W**2, Q2)
+        assert np.allclose(photoproduction(W, "d", "xF_L", Q2=Q2, model=m), FLd, rtol=1e-9, atol=1e-14)
+        assert np.allclose(photoproduction(W, "d", "F_T", Q2=Q2, model=m), 2 * F1d, rtol=1e-13)
