@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from taggedpd import christy_bosted as cb
-from taggedpd.photoabsorption import (BelowThreshold, Blend, ChristyBosted, PhotoabsorptionModel,
+from taggedpd.inclusive import (BelowThreshold, Blend, ChristyBosted, PhotoabsorptionModel,
                                       Piecewise, PION_THRESHOLD, default_photoabsorption,
                                       nu_from_W, W_from_nu, photoproduction)
 
@@ -220,7 +220,7 @@ def test_structure_provider():
     x = np.array([0.2, 0.4, 0.6]); Q2 = np.array([1.0, 2.0, 3.0])
     for nuc in ("p", "n"):
         F1, F2 = s.F1F2(x, Q2, nuc)
-        w2 = cb.MP_CB**2 + Q2 * (1 / x - 1)
+        w2 = s.W(x, Q2, nuc) ** 2   # physical nucleon mass in x -> W
         F1r, F2r, R = cb.f1f2in09(nuc, Q2, w2, binned=False)
         assert np.allclose(F1, F1r) and np.allclose(F2, F2r)
         FT, FL = s.FT_FL(x, Q2, nuc)

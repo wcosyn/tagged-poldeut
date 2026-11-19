@@ -13,7 +13,7 @@ import pytest
 
 from taggedpd import christy_bosted21 as c21
 from taggedpd.christy_bosted21 import PreliminaryFitWarning
-from taggedpd.photoabsorption import ChristyBosted2021, default_photoabsorption, photoproduction
+from taggedpd.inclusive import ChristyBosted2021, default_photoabsorption, photoproduction
 
 REF = os.path.join(os.path.dirname(__file__), "reference")
 
@@ -140,7 +140,7 @@ def test_structure_provider_2021():
     x = np.array([0.2, 0.4, 0.6]); Q2 = np.array([1.0, 2.0, 3.0])
     for nuc in ("p", "n"):
         F1, F2, R = s.F1F2R(x, Q2, nuc)
-        w2 = s.W2(x, Q2)
+        w2 = s.W(x, Q2, nuc) ** 2
         F1r, F2r = c21.f1f2in21(nuc, Q2, w2)
         assert np.allclose(F1, F1r) and np.allclose(F2, F2r)
         FT, FL = s.FT_FL(x, Q2, nuc)

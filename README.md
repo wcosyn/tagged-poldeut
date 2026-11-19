@@ -19,7 +19,7 @@ Development history, validation details and open items: [docs/DEVELOPMENT_NOTES.
 pip install -e .            # runtime: numpy only
 python -m pytest            # needs pytest + scipy
 python notebooks/build_notebook.py --run   # regenerate notebook + PNGs in notebooks/figures/
-python notebooks/build_photoproduction_notebook.py --run   # photoproduction / Christy-Bosted notebook
+python notebooks/build_inclusive_notebook.py --run   # inclusive SFs / photoabsorption / Christy-Bosted notebook
 ```
 
 ## Usage
@@ -80,7 +80,7 @@ whichever is which. The paper writes all formulas for proton tagging (Eq. 2.2).
 | `crosssection.py` | tagged SFs, Part I master formula, σ_red, dσ, polarization, asymmetries | Secs. II, V, VI; Part I Secs. IV–V |
 | `sumrules.py` | integrals over the spectator momentum | Eqs. (4.23)–(4.25), App. A |
 | `christy_bosted.py` | port of the Christy–Bosted `F1F209.f` fits: p, n, d F1/F2/R, σ_T, σ_L | PRC 81, 055213; PRC 77, 065206 |
-| `photoabsorption.py` | σ_T / F1 of p, n, d: Christy–Bosted plus pluggable models (low W, Regge, …) | — |
+| `inclusive.py` | unpolarized inclusive SFs and σ_T, σ_L of p, n, d in (W, Q²), from Q² = 0 to DIS: pluggable models (Christy–Bosted, SLAC/LHAPDF via adapters, low W, Regge, …), adapter to `NucleonStructure` for tagged DIS | — |
 
 ## Conventions (read this)
 
@@ -123,15 +123,45 @@ Note: the paper's text quotes DSSV09 for g₁ⁿ, but the C++ code (and thus the
 uses GRSV2000 LO. These are different fits (GRSV2000: PRD 63, 094005 (2001); DSSV09:
 PRD 80, 034030 (2009)).
 
-## Photoproduction and the resonance region (Christy–Bosted)
+## Inclusive structure functions, photoabsorption and the resonance region
 
 ```python
-from taggedpd import photoproduction
-sig = photoproduction(W, "n")                         # sigma_T(gamma n) [microbarn], Q2 = 0
-F1d = photoproduction(W, "d", quantity="F1", Q2=0.5)  # deuteron, per nucleus
-sig, src = photoproduction(W, "p", return_source=True)  # which parametrization was used per point
-FT, FL = (photoproduction(W, "p", q, Q2=1.0) for q in ("F_T", "F_L"))   # paper conventions
+from taggedpd import inclusive_sf                     # alias: photoproduction
+sig = inclusive_sf(W, "n")                            # sigma_T(gamma n) [microbarn], Q2 = 0
+F1d = inclusive_sf(W, "d", quantity="F1", Q2=0.5)     # deuteron, per nucleus
+sig, src = inclusive_sf(W, "p", return_source=True)   # which parametrization was used per point
+FT, FL = (inclusive_sf(W, "p", q, Q2=1.0) for q in ("F_T", "F_L"))   # paper conventions
 ```
+
+**Architecture.** All unpolarized inclusive input lives in one layer, `taggedpd.inclusive`,
+in the variables (W, Q²). That choice covers real photons as well: in (x, Q²) the point
+Q² = 0 is degenerate. Models implement `domain` and `F1` (or `sigma_T`), and `F1F2` when F2
+is known. Everything else (σ_L, R, F_T, F_L, …) is derived in one place,
+`InclusiveModel.evaluate`. `Piecewise` combines models (first matching domain wins) and
+`Blend` makes smooth transitions. Two adapters connect this layer to the (x, Q²)
+`NucleonStructure` providers used by `TaggedDIS`:
+
+* `FromNucleonStructure(provider, W_min=…, Q2_min=…)` wraps any provider (SLAC/Bodek,
+  LHAPDF, …) as a (W, Q²) model with a kinematic domain;
+* `AsNucleonStructure(model)` exposes any model, including a full `Piecewise`, as a
+  `NucleonStructure` for `TaggedDIS`. Polarized input is added with `CombinedStructure`.
+
+```python
+from taggedpd import (resonance_dis_model, AsNucleonStructure, CombinedStructure,
+                      GRSV2000Structure, TaggedDIS)
+m = resonance_dis_model()                  # CB in resonance region, blend 2.5-3 GeV, SLAC (R=0.18) above
+inclusive_sf(W, "p", "F2", Q2=3.0, model=m)
+td = TaggedDIS("AV18", structure=CombinedStructure(AsNucleonStructure(m), GRSV2000Structure()))
+# resonance_dis_model(dis=LHAPDFStructure("CT18LO")) for another DIS input
+```
+
+The defaults are unchanged: `TaggedDIS` uses SLAC (R = 0.18) + GRSV2000, and
+`inclusive_sf` uses the Christy–Bosted 2009 pieces. The combined model gives the same tagged
+cross section in DIS kinematics. Where the active nucleon's W is in the resonance region it
+differs by tens of percent, up to a factor ~2 at the Δ (notebook, section 8), because the
+Bodek fit's resonances are much weaker and broader than Christy–Bosted's.
+`ChristyBostedStructure(version=…)` is `AsNucleonStructure` of a single Christy–Bosted fit
+(not restricted to its domain).
 
 **Which structure function is returned.** Papers disagree on what "F_T" and "F_L" mean
 (factors of x and 2), so every option of `quantity=` is defined explicitly below. All of
@@ -174,20 +204,17 @@ distribution and adding an empirical MEC/dip term, F̄₁ describes the inclusiv
 data. The neutron is then F₁ₙ = 2F̄₁ − F₁ₚ(Christy). It takes R = σ_L/σ_T from the proton,
 because the deuteron fit is transverse only. The deuteron result is per nucleus and
 inelastic only: photodisintegration γd → pn is not included. Details and caveats are in
-the module docstring and in `notebooks/photoproduction.ipynb`.
+the module docstring and in `notebooks/inclusive.ipynb`.
 
-`photoproduction()` evaluates an ordered list of models (`photoabsorption.Piecewise`).
-Each point uses the first model whose domain contains it. The default list is:
+The default model of `inclusive_sf()` (`default_photoabsorption()`) is an ordered
+`Piecewise` list. Each point uses the first model whose domain contains it. The list is:
 Christy–Bosted inside its published ranges; the Christy–Bosted forms extrapolated between
 the pion threshold and the lower fit edge; and zero below threshold for p and n. Outside
 all of them the result is NaN, unless `outside="zero"` or `outside="raise"` is set. To add
-a parametrization, subclass `PhotoabsorptionModel` and implement `domain` and `sigma_T`
-(or `F1`), then put the model *before* the Christy–Bosted entries. `Blend` gives smooth
-transitions between models. See the module docstring for an example.
-
-For tagged DIS in the resonance region, `ChristyBostedStructure()` is a `NucleonStructure`
-provider of F1 and F2 in (x, Q²); combine it with a polarized provider through
-`CombinedStructure`.
+a parametrization, subclass `InclusiveModel` and implement `domain` and `sigma_T`
+(or `F1`), plus `F1F2` if F2 is known. Then put the model *before* the Christy–Bosted
+entries. `Blend` gives smooth transitions between models. See the module docstring for an
+example.
 
 Implementation notes:
 
@@ -197,8 +224,12 @@ Implementation notes:
 * `RESMODD` tabulates its resonance shapes in 1 MeV bins of W, which turns n and d into a
   staircase: steps of ~1% above W = 1.2 GeV and tens of percent within 25 MeV of
   threshold. The low-level functions keep this behaviour (`binned=True`) for exact
-  regression. `photoproduction` and `ChristyBostedStructure` evaluate the shapes smoothly
+  regression. `inclusive_sf` and `ChristyBostedStructure` evaluate the shapes smoothly
   by default.
+* `AsNucleonStructure` (and therefore `ChristyBostedStructure`) converts x → W with the
+  physical proton or neutron mass, as physics-code's `NucleonStructure::getF_CB` does.
+  Until 2026-11-19 `ChristyBostedStructure` used the fit's proton mass for the neutron as
+  well; the switch changed the neutron by up to 1–2% near threshold (large x).
 
 ### PRELIMINARY: the 2021 fit (F1F221)
 
@@ -222,10 +253,11 @@ The smearing tables in `taggedpd/data/f1f2tables/` come from the same SIMC repos
 That repository has no license file, so redistribution has not been cleared.
 
 ```python
-from taggedpd import default_photoabsorption, photoproduction, ChristyBostedStructure
+from taggedpd import default_photoabsorption, inclusive_sf, ChristyBostedStructure, resonance_dis_model
 m21 = default_photoabsorption(fit="2021")         # emits PreliminaryFitWarning
-photoproduction(W, "n", model=m21)
+inclusive_sf(W, "n", model=m21)
 ChristyBostedStructure(version="2021")            # resonance-region F1, F2 (warns too)
+resonance_dis_model(fit="2021")                   # 2021 fit in the resonance region (warns too)
 ```
 
 The port agrees with the Fortran to rounding. Quirks of the original are reproduced on
@@ -236,7 +268,7 @@ purpose and documented in the module:
   the Δ and more near threshold;
 * the deuteron F1 has 1–5% numerical steps as a function of Q² near threshold.
 
-The comparison with the 2009 fits is in `notebooks/photoproduction.ipynb`, section 7.
+The comparison with the 2009 fits is in `notebooks/inclusive.ipynb`, section 7.
 
 ## Validation (see `tests/` and `notebooks/paper_figures.ipynb`)
 

@@ -1,7 +1,7 @@
-"""Builds photoproduction.ipynb (plain nbformat-4 JSON, no jupyter needed).
+"""Builds inclusive.ipynb (plain nbformat-4 JSON, no jupyter needed).
 
-Run:  python notebooks/build_photoproduction_notebook.py         -> writes notebooks/photoproduction.ipynb
-      python notebooks/build_photoproduction_notebook.py --run   -> also executes all code cells
+Run:  python notebooks/build_inclusive_notebook.py         -> writes notebooks/inclusive.ipynb
+      python notebooks/build_inclusive_notebook.py --run   -> also executes all code cells
                                                                    (Agg backend), PNGs to notebooks/figures/
 """
 
@@ -23,11 +23,13 @@ def code(s):
 
 # ---------------------------------------------------------------------------
 md(r"""
-# Photoabsorption on p, n and d — Christy–Bosted
+# Inclusive structure functions and photoabsorption on p, n and d
 
 This notebook shows the Python port of the Christy–Bosted resonance-region fits
-(`taggedpd.christy_bosted`) and the photoproduction interface built on it
-(`taggedpd.photoabsorption`).
+(`taggedpd.christy_bosted`) and the general inclusive layer built on it (`taggedpd.inclusive`).
+`inclusive_sf(W, target, quantity, Q2)` returns $\sigma_{T,L}$, $F_1$, $F_2$, $F_T$, $F_L$, … in $(W,Q^2)$,
+from real photons ($Q^2=0$; `photoproduction` is an alias) through the resonance region to DIS.
+The same model objects feed the tagged-DIS code through `AsNucleonStructure` (section 8).
 
 **Original work — please cite:**
 
@@ -54,9 +56,9 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.abspath('..'))          # use the repo checkout
 from taggedpd import christy_bosted as cb
-from taggedpd.photoabsorption import (photoproduction, default_photoabsorption, Piecewise, Blend,
-                                      ChristyBosted, PhotoabsorptionModel, nu_from_W, W_from_nu,
-                                      PION_THRESHOLD)
+from taggedpd.inclusive import (inclusive_sf, default_photoabsorption, Piecewise, Blend,
+                                ChristyBosted, InclusiveModel, nu_from_W, W_from_nu,
+                                PION_THRESHOLD)
 
 plt.rcParams.update({'axes.labelsize': 13, 'legend.fontsize': 10, 'figure.dpi': 90,
                      'font.family': 'serif', 'mathtext.fontset': 'cm'})
@@ -126,7 +128,7 @@ code(r"""
 W = np.linspace(1.0, 3.2, 1500)
 fig, ax = plt.subplots(1, 2, figsize=(12, 4.2))
 for tgt, lab, fac in (('p', r'$\gamma p$', 1), ('n', r'$\gamma n$', 1), ('d', r'$\gamma d$ / 2', 0.5)):
-    sig, src = photoproduction(W, tgt, return_source=True)
+    sig, src = inclusive_sf(W, tgt, return_source=True)
     ax[0].plot(W, fac * sig, label=lab)
     nu = nu_from_W(W)
     ax[1].plot(nu, fac * sig, label=lab)
@@ -137,15 +139,15 @@ ax[1].legend()
 fig.tight_layout(); save(fig, 'pp_sigmaT')
 
 Wd = np.linspace(1.15, 1.35, 2001)
-sp = photoproduction(Wd, 'p')
+sp = inclusive_sf(Wd, 'p')
 print(f'gamma p: Delta peak sigma_T = {sp.max():.0f} microbarn at W = {Wd[np.argmax(sp)]:.3f} GeV')
 """)
 
 code(r"""
 # deuteron vs the sum of free nucleons: Fermi smearing and the MEC term
 W = np.linspace(1.0, 2.2, 1000)
-sd = photoproduction(W, 'd')
-spn = photoproduction(W, 'p') + photoproduction(W, 'n')
+sd = inclusive_sf(W, 'd')
+spn = inclusive_sf(W, 'p') + inclusive_sf(W, 'n')
 mec = cb.sigmaT_from_F1(2 * cb.mec_deuteron(0.0, W**2), W**2)
 fig, ax = plt.subplots(figsize=(6.5, 4))
 ax.plot(W, sd, label=r'$\gamma d$ (smeared $\bar F_1$ + MEC)')
@@ -182,7 +184,7 @@ W = np.linspace(1.08, 3.0, 800)
 fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
 for ax, tgt, title, fac in zip(axs, 'pnd', ('proton', 'neutron', 'deuteron / 2'), (1, 1, 0.5)):
     for Q2 in (0.0, 0.1, 0.5, 1.0, 2.0, 4.0):
-        ax.plot(W, fac * photoproduction(W, tgt, 'F1', Q2=Q2), label=f'$Q^2$ = {Q2:g}')
+        ax.plot(W, fac * inclusive_sf(W, tgt, 'F1', Q2=Q2), label=f'$Q^2$ = {Q2:g}')
     ax.set_title(title); ax.set_xlabel('$W$ [GeV]')
 axs[0].set_ylabel('$F_1$'); axs[0].legend()
 fig.tight_layout(); save(fig, 'pp_F1_Q2')
@@ -191,7 +193,7 @@ fig.tight_layout(); save(fig, 'pp_F1_Q2')
 md(r"""
 ### Which "$F_T$", "$F_L$"? — conventions
 
-`photoproduction(..., quantity=...)` returns, besides $\sigma_T$ and $F_1$: `"F_T"` $=F_{[UU,T]}=2F_1$
+`inclusive_sf(..., quantity=...)` returns, besides $\sigma_T$ and $F_1$: `"F_T"` $=F_{[UU,T]}=2F_1$
 and `"F_L"` $=F_{[UU,L]}=(1+\gamma^2)F_2/x-2F_1=R\,F_T$, both in the paper's (Part I) convention;
 `"F_L_scaling"` $=F_2/x-2F_1$, the scaling-limit relation of Eq. (5.10); `"xF_L"`
 $=(1+\gamma^2)F_2-2xF_1$, the "$F_L$" of Christy–Bosted and many DIS papers; and also `"F2"`, `"R"`,
@@ -205,12 +207,12 @@ W = np.linspace(1.1, 3.0, 600)
 fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 for ax, Q2 in zip(axs, (0.5, 2.0)):
     for q, ls in (('F_T', '-'), ('F_L', '-'), ('F_L_scaling', '--'), ('xF_L', ':')):
-        ax.plot(W, photoproduction(W, 'p', q, Q2=Q2), ls, label=q)
+        ax.plot(W, inclusive_sf(W, 'p', q, Q2=Q2), ls, label=q)
     ax.axhline(0, c='0.6', lw=0.8)
     ax.set_title(f'proton, 2009 fit, $Q^2$ = {Q2} GeV$^2$'); ax.set_xlabel('$W$ [GeV]'); ax.legend()
 fig.tight_layout(); save(fig, 'pp_FT_FL_conventions')
-print('check F_L = R F_T:', np.allclose(photoproduction(W, 'p', 'F_L', Q2=2.0),
-      photoproduction(W, 'p', 'R', Q2=2.0) * photoproduction(W, 'p', 'F_T', Q2=2.0)))
+print('check F_L = R F_T:', np.allclose(inclusive_sf(W, 'p', 'F_L', Q2=2.0),
+      inclusive_sf(W, 'p', 'R', Q2=2.0) * inclusive_sf(W, 'p', 'F_T', Q2=2.0)))
 """)
 
 # ---------------------------------------------------------------------------
@@ -231,7 +233,7 @@ Q2 = np.concatenate([[0.0], np.geomspace(1e-8, 2.0, 200)])
 fig, ax = plt.subplots(figsize=(7, 4))
 for Wv in (1.232, 1.5, 1.7, 2.5):
     for tgt, ls in (('p', '-'), ('n', '--')):
-        s = photoproduction(np.full_like(Q2, Wv), tgt, Q2=Q2)
+        s = inclusive_sf(np.full_like(Q2, Wv), tgt, Q2=Q2)
         ax.plot(Q2[1:], s[1:] / s[0], ls, label=f'{tgt}, W = {Wv}')
 ax.set_xscale('log'); ax.set_xlabel('$Q^2$ [GeV$^2$]'); ax.set_ylabel(r'$\sigma_T(Q^2)/\sigma_T(0)$')
 ax.legend(ncol=2, fontsize=8)
@@ -243,7 +245,7 @@ md(r"""
 ## 5. Binned (FORTRAN) vs smooth evaluation
 
 `RESMODD` evaluates its Breit–Wigner shapes from a table in 1 MeV bins of $W$. The port reproduces this
-with `binned=True` (used in the regression tests); the photoproduction interface uses the smooth
+with `binned=True` (used in the regression tests); `inclusive_sf` uses the smooth
 evaluation (`binned=False`) by default. The binning produces a staircase in $\bar F_1$ and hence in the
 neutron: ~1% above $W=1.2$ GeV and up to tens of percent within ~25 MeV of the pion threshold, where $F_1$
 itself is small. The physics-code C++ (which links the FORTRAN) has the staircase.
@@ -253,7 +255,7 @@ code(r"""
 W = np.linspace(PION_THRESHOLD + 1e-4, 1.25, 3000)
 fig, ax = plt.subplots(1, 2, figsize=(11, 3.8))
 for binned, lab in ((True, 'binned (FORTRAN)'), (False, 'smooth')):
-    ax[0].plot(W, photoproduction(W, 'n', model=default_photoabsorption(binned=binned)), label=lab)
+    ax[0].plot(W, inclusive_sf(W, 'n', model=default_photoabsorption(binned=binned)), label=lab)
 ax[0].set_xlabel('$W$ [GeV]'); ax[0].set_ylabel(r'$\sigma_T(\gamma n)$ [$\mu$b]'); ax[0].legend()
 W = np.linspace(1.08, 3.0, 6000)
 a = cb.f1f2in09('n', 0.0, W**2, binned=True)[0]; b = cb.f1f2in09('n', 0.0, W**2, binned=False)[0]
@@ -266,7 +268,7 @@ fig.tight_layout(); save(fig, 'pp_binning')
 md(r"""
 ## 6. Adding other parametrizations
 
-`photoproduction` evaluates an ordered `Piecewise` list: each point uses the first model whose
+`inclusive_sf` evaluates an ordered `Piecewise` list: each point uses the first model whose
 `domain` contains it, and `return_source=True` reports which piece was used. A new model implements
 `domain` and either `sigma_T` or `F1`. Below, a **toy** Regge-like form
 $\sigma = X s^{\epsilon} + Y s^{-\eta}$ (illustrative numbers, *not a fit*) is placed in front of the
@@ -275,7 +277,7 @@ transition. A dedicated low-$W$ model would be inserted the same way.
 """)
 
 code(r"""
-class ToyRegge(PhotoabsorptionModel):
+class ToyRegge(InclusiveModel):
     name = 'toy Regge'
     targets = ('p', 'n')
     def domain(self, W, Q2, target):
@@ -291,7 +293,7 @@ ext = Piecewise([Blend(cbfit, toy, 2.3, 2.5), toy, *default_photoabsorption().mo
 print(ext.describe())
 
 W = np.linspace(1.0, 6.0, 2000)
-sig, src = photoproduction(W, 'p', model=ext, return_source=True)
+sig, src = inclusive_sf(W, 'p', model=ext, return_source=True)
 fig, ax = plt.subplots(figsize=(7, 4))
 for name in dict.fromkeys(src):
     m = src == name
@@ -332,8 +334,8 @@ print(m21.describe())
 W = np.linspace(1.0, 3.2, 1200)
 fig, axs = plt.subplots(2, 3, figsize=(15, 7), sharex=True, gridspec_kw={'height_ratios': [3, 1.3]})
 for k, (tgt, title) in enumerate((('p', r'$\gamma p$'), ('n', r'$\gamma n$'), ('d', r'$\gamma d$ (per nucleus)'))):
-    s09 = photoproduction(W, tgt, model=m09)
-    s21 = photoproduction(W, tgt, model=m21)
+    s09 = inclusive_sf(W, tgt, model=m09)
+    s21 = inclusive_sf(W, tgt, model=m21)
     axs[0, k].plot(W, s09, label='2009 (PRC 81 055213 / PRC 77 065206)')
     axs[0, k].plot(W, s21, '--', label='2021 F1F221 (PRELIMINARY)')
     axs[0, k].set_title(title); axs[0, k].legend(fontsize=8)
@@ -351,7 +353,7 @@ code(r"""
 W = np.linspace(1.08, 3.0, 1000)
 fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 for m, lab, ls in ((m09, '2009', '-'), (m21, '2021 (PRELIMINARY)', '--')):
-    sp, sn, sd = (photoproduction(W, t, model=m) for t in 'pnd')
+    sp, sn, sd = (inclusive_sf(W, t, model=m) for t in 'pnd')
     ax[0].plot(W, sn / sp, ls, label=lab)
     ax[1].plot(W, sd / (sp + sn), ls, label=lab)
 ax[0].axhline(1, c='0.6', lw=0.8); ax[0].set_ylim(0.4, 2.0)
@@ -359,8 +361,8 @@ ax[0].set_xlabel('$W$ [GeV]'); ax[0].set_ylabel(r'$\sigma_T(\gamma n)/\sigma_T(\
 ax[1].axhline(1, c='0.6', lw=0.8); ax[1].set_ylim(0.5, 2.0)
 ax[1].set_xlabel('$W$ [GeV]'); ax[1].set_ylabel(r'$\sigma_T(\gamma d)/[\sigma_T(\gamma p)+\sigma_T(\gamma n)]$'); ax[1].legend()
 fig.tight_layout(); save(fig, 'pp_cmp_ratios')
-Wd = np.array([1.21, 1.232]); print('sigma_n/sigma_p at the Delta: 2009', np.round(photoproduction(Wd, 'n') / photoproduction(Wd, 'p'), 3),
-                                  ' 2021', np.round(photoproduction(Wd, 'n', model=m21) / photoproduction(Wd, 'p', model=m21), 3))
+Wd = np.array([1.21, 1.232]); print('sigma_n/sigma_p at the Delta: 2009', np.round(inclusive_sf(Wd, 'n') / inclusive_sf(Wd, 'p'), 3),
+                                  ' 2021', np.round(inclusive_sf(Wd, 'n', model=m21) / inclusive_sf(Wd, 'p', model=m21), 3))
 """)
 
 code(r"""
@@ -369,8 +371,8 @@ W = np.linspace(1.08, 3.0, 600)
 fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
 for ax, tgt, title, fac in zip(axs, 'pnd', ('proton', 'neutron', 'deuteron / 2'), (1, 1, 0.5)):
     for i, Q2 in enumerate((0.1, 0.5, 2.0, 5.0)):
-        ax.plot(W, fac * photoproduction(W, tgt, 'F1', Q2=Q2, model=m09), c=f'C{i}', label=f'$Q^2$={Q2:g} 2009')
-        ax.plot(W, fac * photoproduction(W, tgt, 'F1', Q2=Q2, model=m21), '--', c=f'C{i}', label=f'$Q^2$={Q2:g} 2021 (prelim.)')
+        ax.plot(W, fac * inclusive_sf(W, tgt, 'F1', Q2=Q2, model=m09), c=f'C{i}', label=f'$Q^2$={Q2:g} 2009')
+        ax.plot(W, fac * inclusive_sf(W, tgt, 'F1', Q2=Q2, model=m21), '--', c=f'C{i}', label=f'$Q^2$={Q2:g} 2021 (prelim.)')
     ax.set_title(title); ax.set_xlabel('$W$ [GeV]')
 axs[0].set_ylabel('$F_1$'); axs[0].legend(fontsize=7, ncol=2)
 fig.tight_layout(); save(fig, 'pp_cmp_F1_Q2')
@@ -400,8 +402,8 @@ ax[0].axvline(0.05, c='0.6', ls=':')
 ax[0].set_xlabel('$Q^2$ [GeV$^2$]'); ax[0].set_ylabel(r'$F_1^d(Q^2)/F_1^d(0.06)$  (2021, PRELIMINARY)'); ax[0].legend(fontsize=8)
 Wl = np.linspace(1.0, 4.5, 1500)
 for tgt in 'pn':
-    ax[1].plot(Wl, photoproduction(Wl, tgt, model=m21), label=f'{tgt}, 2021 (PRELIMINARY)')
-    ax[1].plot(Wl, photoproduction(Wl, tgt, model=m09), ':', label=f'{tgt}, 2009')
+    ax[1].plot(Wl, inclusive_sf(Wl, tgt, model=m21), label=f'{tgt}, 2021 (PRELIMINARY)')
+    ax[1].plot(Wl, inclusive_sf(Wl, tgt, model=m09), ':', label=f'{tgt}, 2009')
 ax[1].set_xlabel('$W$ [GeV]'); ax[1].set_ylabel(r'$\sigma_T$ [$\mu$b]'); ax[1].set_yscale('log'); ax[1].legend(fontsize=8)
 fig.tight_layout(); save(fig, 'pp_2021_checks')
 """)
@@ -426,7 +428,64 @@ md(r"""
 
 # ---------------------------------------------------------------------------
 md(r"""
-## 8. Speed
+## 8. Resonance region + DIS in one model, and its use in tagged DIS
+
+`resonance_dis_model()` combines Christy–Bosted in the resonance region with a DIS provider
+(default: the paper's SLAC/Bodek $F_2$ with $R=0.18$; any `NucleonStructure`, e.g. LHAPDF, works),
+blended linearly over $2.5<W<3$ GeV where both apply, and the DIS provider beyond the
+Christy–Bosted range. `AsNucleonStructure(model)` turns any such $(W,Q^2)$ model into an $(x,Q^2)$
+provider for `TaggedDIS`; polarized input is added with `CombinedStructure`. The defaults of
+`TaggedDIS` are unchanged (SLAC + GRSV2000).
+""")
+
+code(r"""
+from taggedpd import (resonance_dis_model, AsNucleonStructure, CombinedStructure, GRSV2000Structure,
+                      SLACStructure, TaggedDIS, Kinematics)
+from taggedpd.inclusive import FromNucleonStructure
+mres = resonance_dis_model()
+print(mres.describe())
+W = np.linspace(1.1, 5.0, 1500)
+slac_only = Piecewise([FromNucleonStructure(SLACStructure())])
+fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+for ax, tgt in zip(axs, 'pn'):
+    for i, Q2 in enumerate((1.0, 3.0, 6.0)):
+        v, src = inclusive_sf(W, tgt, 'F2', Q2=Q2, model=mres, return_source=True)
+        ax.plot(W, v, c=f'C{i}', label=f'$Q^2$={Q2:g}: CB + blend + SLAC')
+        ax.plot(W, inclusive_sf(W, tgt, 'F2', Q2=Q2, model=slac_only), ':', c=f'C{i}', label=f'$Q^2$={Q2:g}: SLAC only')
+    ax.axvspan(2.5, 3.0, color='0.9', zorder=0)
+    ax.set_title(f'{tgt}: $F_2$ (shaded: blend window)'); ax.set_xlabel('$W$ [GeV]'); ax.legend(fontsize=7)
+fig.tight_layout(); save(fig, 'pp_resonance_dis')
+""")
+
+code(r"""
+# tagged DIS: default (SLAC everywhere) vs Christy-Bosted in the resonance region of the active neutron
+td0 = TaggedDIS('AV18')
+td1 = TaggedDIS('AV18', structure=CombinedStructure(AsNucleonStructure(resonance_dis_model()), GRSV2000Structure()))
+x = np.linspace(0.05, 0.85, 300)
+fig, ax = plt.subplots(figsize=(7, 4))
+for i, Q2 in enumerate((2.0, 5.0)):
+    kin = Kinematics.from_y(x, Q2, 0.6)
+    s0 = td0.reduced_cross_section(kin, 1.0, 0.1, 0.0)
+    s1 = td1.reduced_cross_section(kin, 1.0, 0.1, 0.0)
+    ax.plot(x, s1 / s0, c=f'C{i}', label=f'$Q^2$ = {Q2:g} GeV$^2$')
+ax.axhline(1, c='0.6', lw=0.8)
+ax.set_xlabel('$x$'); ax.set_ylabel(r'$\sigma_{\rm red}$ (CB + SLAC) / (SLAC)')
+ax.set_title(r'unpolarized, $\alpha_p=1$, $p_T=0.1$ GeV, $y=0.6$'); ax.legend()
+fig.tight_layout(); save(fig, 'pp_tagged_resonance')
+""")
+
+md(r"""
+In DIS kinematics (small $x$, large $W_n$) the two give identical results by construction. Where
+the active neutron's $W_n$ falls in the resonance region (large $x$ at moderate $Q^2$), the
+tagged cross section differs from the SLAC/Bodek input used for the paper's figures by tens of
+percent, and up to a factor ~2 at the $\Delta$ ($x\approx0.8$ at $Q^2=2$ GeV²). The reason is that
+the Bodek fit's neutron resonances are much weaker and broader than Christy–Bosted's. This
+matters only for kinematics where the paper's DIS treatment is not intended to apply anyway.
+""")
+
+# ---------------------------------------------------------------------------
+md(r"""
+## 9. Speed
 
 Everything is vectorized. With the 2009 fits, p and n cost ~1 µs per point and the deuteron (Fermi
 smearing over 20 or 200 bins) ~30 µs. With the 2021 fit, the deuteron integrates over 48–76 $y$ nodes,
@@ -440,7 +499,7 @@ rng = np.random.default_rng(0)
 Wr = rng.uniform(1.1, 3.0, 50_000)
 for lab, m in (('2009', m09), ('2021 (prelim.)', m21)):
     for tgt in 'pnd':
-        t0 = time.time(); photoproduction(Wr, tgt, model=m); dt = time.time() - t0
+        t0 = time.time(); inclusive_sf(Wr, tgt, model=m); dt = time.time() - t0
         print(f'{lab:15s} {tgt}: {dt / Wr.size * 1e6:.2f} us/point')
 """)
 
@@ -458,7 +517,7 @@ def build():
         if kind == "code":
             cell.update(execution_count=None, outputs=[])
         nb["cells"].append(cell)
-    with open(os.path.join(HERE, "photoproduction.ipynb"), "w") as f:
+    with open(os.path.join(HERE, "inclusive.ipynb"), "w") as f:
         json.dump(nb, f, indent=1)
 
 

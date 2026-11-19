@@ -1,13 +1,38 @@
-r"""Total (transverse) photoabsorption on the nucleon and the deuteron.
+r"""Unpolarized inclusive structure functions and (virtual-)photon absorption cross sections.
+
+One layer, in the variables (W, Q^2), for the nucleon and the deuteron, valid from real
+photons (Q^2 = 0) through the resonance region to DIS. The same model object serves
+real photoproduction and, through :class:`AsNucleonStructure`, the tagged-DIS code.
 
 Main entry point::
 
-    from taggedpd.photoabsorption import photoproduction
-    sigma = photoproduction(W, "n")                     # sigma_T(gamma n -> X) [microbarn] at Q^2 = 0
-    F1 = photoproduction(W, "p", quantity="F1", Q2=0.1)
+    from taggedpd.inclusive import inclusive_sf
+    sigma = inclusive_sf(W, "n")                        # sigma_T(gamma n -> X) [microbarn] at Q^2 = 0
+    F1 = inclusive_sf(W, "p", quantity="F1", Q2=0.1)
+    FL = inclusive_sf(W, "p", quantity="F_L", Q2=2.0)
 
-``photoproduction`` evaluates a :class:`PhotoabsorptionModel`. The default one
-(:func:`default_photoabsorption`) is a :class:`Piecewise` combination:
+``photoproduction`` is an alias of :func:`inclusive_sf`.
+
+Architecture
+------------
+* :class:`InclusiveModel` -- interface: ``domain``, ``F1`` or ``sigma_T``, optionally
+  ``F1F2``; everything else (sigma_L, R, F_T, F_L, ...) is derived in one place,
+  :meth:`InclusiveModel.evaluate`. (``PhotoabsorptionModel`` is an alias.)
+* Concrete models: :class:`ChristyBosted` (2009 fits), :class:`ChristyBosted2021`
+  (PRELIMINARY), :class:`BelowThreshold`, and :class:`FromNucleonStructure`, which wraps
+  any (x, Q^2) provider of :mod:`taggedpd.nucleon` (SLAC/Bodek, LHAPDF, ...) as a
+  (W, Q^2) model with a kinematic domain.
+* Combinators: :class:`Piecewise` (first model whose domain contains the point) and
+  :class:`Blend` (linear transition in W).
+* :class:`AsNucleonStructure` exposes any model (e.g. a :class:`Piecewise` with
+  Christy-Bosted in the resonance region and SLAC/LHAPDF in DIS) as an (x, Q^2)
+  :class:`~taggedpd.nucleon.NucleonStructure` for :class:`~taggedpd.crosssection.TaggedDIS`;
+  combine it with a polarized provider via :class:`~taggedpd.nucleon.CombinedStructure`.
+  :func:`resonance_dis_model` builds that combination.
+  :class:`ChristyBostedStructure` is ``AsNucleonStructure`` of a single Christy-Bosted fit.
+
+The default model for :func:`inclusive_sf` is :func:`default_photoabsorption`, a
+:class:`Piecewise` combination:
 
 1. :class:`ChristyBosted` inside the published fit ranges;
 2. the same Christy-Bosted functions *extrapolated* between the pion-production
@@ -28,13 +53,14 @@ The 2009 fits stay the default.
 
 Adding a parametrization
 ------------------------
-Subclass :class:`PhotoabsorptionModel`, implement ``sigma_T`` *or* ``F1`` (the
-other follows from Hand's convention) and ``domain``, then put it in a
+Subclass :class:`InclusiveModel`, implement ``sigma_T`` *or* ``F1`` (the
+other follows from Hand's convention), ``domain``, and ``F1F2`` if F2 is known
+(needed for F_L-type quantities at Q^2 > 0), then put it in a
 :class:`Piecewise` list. Earlier entries win where domains overlap, so a
 dedicated low-W model or a Regge-type high-W fit is simply placed *before* the
 Christy-Bosted entries::
 
-    class MyRegge(PhotoabsorptionModel):
+    class MyRegge(InclusiveModel):
         name = "Regge"
         targets = ("p", "n")
         def domain(self, W, Q2, target):
@@ -44,7 +70,7 @@ Christy-Bosted entries::
             return X * s**eps + Y * s**(-eta)           # microbarn
 
     model = Piecewise([MyRegge(), *default_photoabsorption().models])
-    photoproduction(W, "p", model=model)
+    inclusive_sf(W, "p", model=model)
 
 A smooth transition between two pieces can be had by a model whose ``domain``
 is the overlap region and whose ``sigma_T`` interpolates between the two (see
@@ -69,7 +95,7 @@ Structure-function conventions (``quantity=``)
 ----------------------------------------------
 Conventions for "F_T" and "F_L" differ between papers by factors of x and 2, so
 every option is defined explicitly here. All are built from the model's own F1, F2
-and the nucleon mass M that the model uses kinematically (:meth:`PhotoabsorptionModel.kin_mass`):
+and the nucleon mass M that the model uses kinematically (:meth:`InclusiveModel.kin_mass`):
 nu = (W^2 - M^2 + Q^2)/2M, x = Q^2/(2 M nu), gamma^2 = 4 M^2 x^2/Q^2 = Q^2/nu^2.
 
 =============== ========================================== ==================================
@@ -116,9 +142,14 @@ import numpy as np
 from . import christy_bosted as cb
 from . import christy_bosted21 as cb21
 
-__all__ = ["PhotoabsorptionModel", "ChristyBosted", "ChristyBosted2021", "BelowThreshold",
-           "Piecewise", "Blend", "default_photoabsorption", "photoproduction", "W_from_nu",
-           "nu_from_W", "PION_THRESHOLD", "QUANTITIES"]
+from .constants import M_NEUTRON, M_PROTON
+from .nucleon import NucleonStructure
+
+__all__ = ["InclusiveModel", "PhotoabsorptionModel", "ChristyBosted", "ChristyBosted2021",
+           "BelowThreshold", "FromNucleonStructure", "AsNucleonStructure", "ChristyBostedStructure",
+           "Piecewise", "Blend", "default_photoabsorption", "resonance_dis_model",
+           "inclusive_sf", "photoproduction", "W_from_nu", "nu_from_W", "PION_THRESHOLD",
+           "QUANTITIES"]
 
 _M = cb.MP_CB
 #: free-nucleon pion-production threshold W = m_p + m_pi0 [GeV], as in the fits
@@ -145,7 +176,7 @@ def _norm_target(target):
 # ===========================================================================
 # interface
 # ===========================================================================
-class PhotoabsorptionModel:
+class InclusiveModel:
     """Interface for a parametrization of sigma_T (equivalently F1) at given (W, Q^2).
 
     Subclasses set ``name`` and ``targets`` and implement :meth:`domain` and at
@@ -165,14 +196,14 @@ class PhotoabsorptionModel:
 
     def sigma_T(self, W, Q2, target):
         """Transverse cross section [microbarn]."""
-        if type(self).F1 is PhotoabsorptionModel.F1:
+        if type(self).F1 is InclusiveModel.F1:
             raise NotImplementedError(f"{type(self).__name__} implements neither sigma_T nor F1")
         W = np.asarray(W, float)
         return cb.sigmaT_from_F1(self.F1(W, Q2, target), W * W, self.flux_mass)
 
     def F1(self, W, Q2, target):
         """F1 (per nucleon for p, n; per nucleus for d)."""
-        if type(self).sigma_T is PhotoabsorptionModel.sigma_T:
+        if type(self).sigma_T is InclusiveModel.sigma_T:
             raise NotImplementedError(f"{type(self).__name__} implements neither sigma_T nor F1")
         W = np.asarray(W, float)
         return cb.F1_from_sigmaT(self.sigma_T(W, Q2, target), W * W, self.flux_mass)
@@ -230,7 +261,7 @@ class PhotoabsorptionModel:
         return f"<{type(self).__name__} {self.name!r}>"
 
 
-#: quantities :func:`photoproduction` / :meth:`PhotoabsorptionModel.evaluate` can return.
+#: quantities :func:`inclusive_sf` / :meth:`InclusiveModel.evaluate` can return.
 #: See the module docstring, "Structure-function conventions".
 QUANTITIES = {
     "sigma_T": "transverse cross section [microbarn] (Hand flux)",
@@ -249,7 +280,7 @@ QUANTITIES = {
 # ===========================================================================
 # Christy-Bosted
 # ===========================================================================
-class ChristyBosted(PhotoabsorptionModel):
+class ChristyBosted(InclusiveModel):
     r"""Christy-Bosted fits (see :mod:`taggedpd.christy_bosted` for references and details).
 
     p : proton fit [PRC 81, 055213 (2010)].
@@ -305,7 +336,7 @@ class ChristyBosted(PhotoabsorptionModel):
         return cb._PM
 
 
-class ChristyBosted2021(PhotoabsorptionModel):
+class ChristyBosted2021(InclusiveModel):
     r"""**PRELIMINARY** Christy 2021 fit (F1F221 v1.0 prerelease 1), see :mod:`taggedpd.christy_bosted21`.
 
     Source: ``F1F2IN21_v1.0.f`` by M. E. Christy, distributed with JLab SIMC
@@ -373,7 +404,7 @@ class ChristyBosted2021(PhotoabsorptionModel):
             return 0.3894e3 * F1 * (3.14158 * 3.14159) * (1.0 / 137.036) * 8.0 / np.abs(w2 - m2)
 
 
-class BelowThreshold(PhotoabsorptionModel):
+class BelowThreshold(InclusiveModel):
     """sigma_T = 0 for a free nucleon below the pion-production threshold (Compton neglected)."""
 
     name = "below pion threshold"
@@ -391,12 +422,133 @@ class BelowThreshold(PhotoabsorptionModel):
         return z, z.copy()
 
 
-class Blend(PhotoabsorptionModel):
+# ===========================================================================
+# adapters between (x, Q^2) NucleonStructure providers and (W, Q^2) models
+# ===========================================================================
+def _nucleon_mass(target):
+    return M_PROTON if _norm_target(target) == "p" else M_NEUTRON
+
+
+class FromNucleonStructure(InclusiveModel):
+    """Any (x, Q^2) :class:`~taggedpd.nucleon.NucleonStructure` (SLAC/Bodek, LHAPDF, ...) as a (W, Q^2) model.
+
+    x = Q^2/(W^2 - M^2 + Q^2) with M the physical proton/neutron mass (the convention
+    of :mod:`taggedpd.nucleon`, which also uses it in gamma^2), so that the derived
+    F_T, F_L reproduce ``provider.FT_FL`` exactly for providers with ``target_mass=True``.
+    Nucleons only (p, n). Real photons are not described by DIS-type fits (F2 -> 0 as
+    x -> 0 at Q^2 -> 0), hence the Q^2_min default.
+
+    Parameters
+    ----------
+    provider : NucleonStructure
+    W_min, W_max : float
+        Domain in W [GeV] (default: 0 .. infinity).
+    Q2_min, Q2_max : float
+        Domain in Q^2 [GeV^2] (default: 1.0 .. infinity; the point Q^2 = Q2_min is included).
+    name : str, optional
+    """
+
+    targets = ("p", "n")
+
+    def __init__(self, provider, W_min=0.0, W_max=np.inf, Q2_min=1.0, Q2_max=np.inf, name=None):
+        self.provider = provider
+        self.W_min, self.W_max, self.Q2_min, self.Q2_max = W_min, W_max, Q2_min, Q2_max
+        self.name = name or getattr(provider, "name", type(provider).__name__)
+
+    def domain(self, W, Q2, target):
+        W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
+        return (W >= self.W_min) & (W <= self.W_max) & (Q2 >= self.Q2_min) & (Q2 <= self.Q2_max)
+
+    def kin_mass(self, target):
+        return _nucleon_mass(target)
+
+    def _x(self, W, Q2, target):
+        M = _nucleon_mass(target)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(Q2 > 0, Q2 / (W * W - M * M + Q2), 0.0)
+
+    def F1F2(self, W, Q2, target):
+        W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
+        F1, F2 = self.provider.F1F2(self._x(W, Q2, target), Q2, _norm_target(target))
+        return np.broadcast_to(F1, W.shape).astype(float), np.broadcast_to(F2, W.shape).astype(float)
+
+    def F1(self, W, Q2, target):
+        return self.F1F2(W, Q2, target)[0]
+
+
+class AsNucleonStructure(NucleonStructure):
+    """Expose a (W, Q^2) :class:`InclusiveModel` as an (x, Q^2) :class:`~taggedpd.nucleon.NucleonStructure`.
+
+    This is how :class:`~taggedpd.crosssection.TaggedDIS` uses Christy-Bosted (or any
+    :class:`Piecewise` combination, e.g. :func:`resonance_dis_model`). Unpolarized only:
+    combine with a polarized provider through :class:`~taggedpd.nucleon.CombinedStructure`.
+
+    W^2 = M^2 + Q^2 (1/x - 1). Points with x <= 0 or x >= 1 give 0, as for the other
+    providers. A :class:`Piecewise` model applies its own domains and ``outside``
+    policy (NaN by default, which then propagates into cross sections: use
+    ``outside="zero"`` or make sure the pieces cover the kinematics). A single model is
+    evaluated without a domain check (extrapolated), like the FORTRAN-based providers.
+
+    Parameters
+    ----------
+    model : InclusiveModel
+    target_mass : bool
+        ``FT_FL`` returns F_[UU,L] = "F_L" = (1+gamma^2)F2/x - 2F1 = R F_T (True, default)
+        or the scaling-limit relation "F_L_scaling" = F2/x - 2F1 (False); cf. the
+        ``target_mass`` convention of :meth:`NucleonStructure.FT_FL`.
+    mass : float or dict, optional
+        Nucleon mass in the x -> W conversion; default physical m_p / m_n.
+    name : str, optional
+    """
+
+    def __init__(self, model, target_mass=True, mass=None, name=None):
+        self.model = model
+        self.target_mass = target_mass
+        self._mass = mass
+        self.name = name or model.name
+
+    def mass(self, nucleon):
+        if self._mass is None:
+            return _nucleon_mass(nucleon)
+        if isinstance(self._mass, dict):
+            return self._mass[_norm_target(nucleon)]
+        return self._mass
+
+    def W(self, x, Q2, nucleon="n"):
+        M = self.mass(nucleon)
+        x = np.asarray(x, float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.sqrt(np.maximum(M * M + np.asarray(Q2, float) * (1.0 / x - 1.0), 0.0))
+
+    def evaluate(self, quantity, x, Q2, nucleon="n"):
+        """Any :data:`QUANTITIES` entry at (x, Q^2); 0 outside 0 < x < 1."""
+        x, Q2 = np.broadcast_arrays(np.asarray(x, float), np.asarray(Q2, float))
+        ok = (x > 0) & (x < 1)
+        out = np.zeros(x.shape)
+        if np.any(ok):
+            W = self.W(x[ok], Q2[ok], nucleon)
+            t = _norm_target(nucleon)
+            if isinstance(self.model, Piecewise):
+                out[ok] = self.model._evaluate(quantity, W, Q2[ok], t)[0]
+            else:
+                out[ok] = self.model.evaluate(quantity, W, Q2[ok], t)
+        return out
+
+    def F1F2(self, x, Q2, nucleon="n"):
+        return self.evaluate("F1", x, Q2, nucleon), self.evaluate("F2", x, Q2, nucleon)
+
+    def FT_FL(self, x, Q2, nucleon="n"):
+        return (self.evaluate("F_T", x, Q2, nucleon),
+                self.evaluate("F_L" if self.target_mass else "F_L_scaling", x, Q2, nucleon))
+
+
+class Blend(InclusiveModel):
     """Linear blend in W of two models over [W_lo, W_hi] (for smooth transitions).
 
     ``q = (1-t) q_low + t q_high`` with t = (W - W_lo)/(W_hi - W_lo), for every
     quantity q separately (so the blended R is not exactly sigma_L/sigma_T of the
-    blended cross sections). Place it before the two models in a :class:`Piecewise` list.
+    blended cross sections). Its domain is [W_lo, W_hi] intersected with the domains
+    of *both* models. Place it before the two models in a :class:`Piecewise` list.
     """
 
     def __init__(self, low, high, W_lo, W_hi, name=None):
@@ -406,7 +558,8 @@ class Blend(PhotoabsorptionModel):
 
     def domain(self, W, Q2, target):
         W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
-        return (W >= self.W_lo) & (W <= self.W_hi) & (Q2 >= 0)
+        return ((W >= self.W_lo) & (W <= self.W_hi) & (Q2 >= 0)
+                & self.low.domain(W, Q2, target) & self.high.domain(W, Q2, target))
 
     def sigma_T(self, W, Q2, target):
         W = np.asarray(W, float)
@@ -419,12 +572,12 @@ class Blend(PhotoabsorptionModel):
                 + t * self.high.evaluate(quantity, W, Q2, target))
 
 
-class Piecewise(PhotoabsorptionModel):
+class Piecewise(InclusiveModel):
     """Ordered list of models; each point is evaluated with the first model whose domain contains it.
 
     Parameters
     ----------
-    models : list of PhotoabsorptionModel
+    models : list of InclusiveModel
     outside : {"nan", "zero", "raise"}
         What to return where no model applies.
     """
@@ -528,7 +681,7 @@ def default_photoabsorption(binned=False, outside="nan", fit="2009"):
 _DEFAULT = None
 
 
-def photoproduction(W, target="p", quantity="sigma_T", Q2=0.0, model=None, return_source=False):
+def inclusive_sf(W, target="p", quantity="sigma_T", Q2=0.0, model=None, return_source=False):
     """Photoabsorption cross sections or structure functions for target "p", "n" or "d".
 
     Parameters
@@ -543,7 +696,7 @@ def photoproduction(W, target="p", quantity="sigma_T", Q2=0.0, model=None, retur
         for the conventions; F_T, F_L follow the paper (Part I).
     Q2 : array_like
         Photon virtuality [GeV^2], default 0 (real photons).
-    model : PhotoabsorptionModel, optional
+    model : InclusiveModel, optional
         Default: :func:`default_photoabsorption` (built once).
     return_source : bool
         Also return an array with the name of the model piece used per point
@@ -570,3 +723,115 @@ def photoproduction(W, target="p", quantity="sigma_T", Q2=0.0, model=None, retur
     if return_source:
         return val, np.where(np.isnan(val), "", model.name).astype(object)
     return val
+
+
+#: alias: real photoproduction is the Q^2 = 0 case of :func:`inclusive_sf`
+photoproduction = inclusive_sf
+#: alias of :class:`InclusiveModel` (former name)
+PhotoabsorptionModel = InclusiveModel
+
+
+# ===========================================================================
+# ready-made combinations
+# ===========================================================================
+def resonance_dis_model(dis=None, W_blend=(2.5, 3.0), fit="2009", dis_Q2_min=1.0, outside="nan"):
+    """Christy-Bosted in the resonance region, a DIS provider above, linear blend in between.
+
+    Pieces (first match wins), for p and n:
+
+    1. :class:`Blend` from Christy-Bosted to the DIS provider over ``W_blend``
+       (only where both are valid);
+    2. the DIS provider (:class:`FromNucleonStructure`) for W >= W_blend[1], Q^2 >= ``dis_Q2_min``;
+    3. the Christy-Bosted pieces of :func:`default_photoabsorption` (``fit`` = "2009" or
+       the PRELIMINARY "2021"), including threshold extrapolation and zero below threshold;
+    4. the DIS provider wherever none of the above applies (e.g. Q^2 above the
+       Christy-Bosted range), Q^2 >= ``dis_Q2_min``.
+
+    The deuteron is served by the Christy-Bosted pieces only. Not covered (NaN by
+    default): W above the Christy-Bosted range at Q^2 < ``dis_Q2_min`` (e.g. real photons
+    at W > 3 GeV) -- the place for a Regge-type model.
+
+    Parameters
+    ----------
+    dis : NucleonStructure, optional
+        Default: ``SLACStructure(R=0.18, target_mass=True)`` (the paper's input).
+    W_blend : (float, float)
+        Transition window in W [GeV]; must lie inside the Christy-Bosted range
+        (W <= 3.0 GeV for the 2009 neutron).
+    """
+    from .nucleon import SLACStructure
+    if dis is None:
+        dis = SLACStructure(R=0.18, target_mass=True)
+    dis_model = FromNucleonStructure(dis, Q2_min=dis_Q2_min)
+    dis_hi = FromNucleonStructure(dis, W_min=W_blend[1], Q2_min=dis_Q2_min, name=dis_model.name)
+    if fit == "2021":
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", cb21.PreliminaryFitWarning)
+            res = default_photoabsorption(fit="2021", outside=outside)
+        warnings.warn("resonance_dis_model(fit='2021') uses the PRELIMINARY, unpublished F1F221 fit.",
+                      cb21.PreliminaryFitWarning, stacklevel=2)
+    else:
+        res = default_photoabsorption(fit=fit, outside=outside)
+    blend = Blend(res.models[0], dis_model, *W_blend)
+    # blend; DIS above the window; Christy-Bosted pieces (fit range, threshold
+    # extrapolation, zero below threshold); DIS wherever none of these applies
+    # (e.g. Q^2 above the Christy-Bosted range)
+    pieces = [blend, dis_hi] + list(res.models) + [dis_model]
+    return Piecewise(pieces, outside=outside, name=f"resonance({res.models[0].name})+DIS({dis_model.name})")
+
+
+class ChristyBostedStructure(AsNucleonStructure):
+    """Unpolarized F1, F2 (and F_T, F_L) of p and n from a single Christy-Bosted fit, in (x, Q^2).
+
+    ``AsNucleonStructure(ChristyBosted(...))``, i.e. W^2 = M^2 + Q^2 (1/x - 1) with the
+    physical proton/neutron mass (as physics-code ``NucleonStructure::getF_CB`` and the
+    other providers; until 2026-11-19 this class used the fit's proton mass for both,
+    which changes the neutron by up to 1-2% near threshold, i.e. at large x, and the
+    proton by < 1e-5). Evaluated everywhere
+    (extrapolated outside the fit range, as the FORTRAN does); ``in_range`` checks the
+    range. For Christy-Bosted in the resonance region and a DIS fit above, use
+    ``AsNucleonStructure(resonance_dis_model())`` instead.
+
+    Proton: Christy & Bosted, PRC 81, 055213 (2010); neutron: 2(p+n)/2 - p with the
+    nucleon average from Bosted & Christy, PRC 77, 065206 (2008); see
+    :mod:`taggedpd.christy_bosted`. ``FT_FL`` returns F_[UU,T] = 2F1 and
+    F_[UU,L] = R F_T from the fit's own R.
+
+    Parameters
+    ----------
+    binned : bool
+        Reproduce the FORTRAN's 1 MeV W binning in the neutron (default False: smooth).
+    version : {"2009", "2021"}
+        "2009" (default): the published fits. "2021": the **PRELIMINARY**, unpublished
+        F1F221 fit of M. E. Christy (SIMC ``F1F2IN21_v1.0.f``, see
+        :mod:`taggedpd.christy_bosted21`); emits a PreliminaryFitWarning.
+    """
+
+    def __init__(self, binned=False, version="2009"):
+        if version not in ("2009", "2021"):
+            raise ValueError("version must be '2009' or '2021'")
+        if version == "2021":
+            warnings.warn("ChristyBostedStructure(version='2021') uses the PRELIMINARY, "
+                          "unpublished F1F221 fit (SIMC F1F2IN21_v1.0.f, M. E. Christy).",
+                          cb21.PreliminaryFitWarning, stacklevel=2)
+            model = ChristyBosted2021(warn=False)
+        else:
+            model = ChristyBosted(binned=binned)
+        super().__init__(model, target_mass=True,
+                         name="Christy-Bosted" if version == "2009" else "Christy 2021 (PRELIMINARY)")
+        self.binned = binned
+        self.version = version
+
+    def in_range(self, x, Q2, nucleon="n"):
+        W = self.W(x, Q2, nucleon)
+        w2 = W * W
+        Q2 = np.asarray(Q2, float)
+        if self.version == "2021":
+            return (W > 1.08) & (w2 < 20.0) & (Q2 >= 0) & (Q2 < 30.0)
+        Wmax = 3.1 if _norm_target(nucleon) == "p" else 3.0
+        return (W > 1.1) & (W < Wmax) & (Q2 >= 0) & (Q2 < 8.0)
+
+    def F1F2R(self, x, Q2, nucleon="n"):
+        """(F1, F2, R) from the fit; zero outside 0 < x < 1."""
+        return (self.evaluate("F1", x, Q2, nucleon), self.evaluate("F2", x, Q2, nucleon),
+                self.evaluate("R", x, Q2, nucleon))

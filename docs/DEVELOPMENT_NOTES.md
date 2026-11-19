@@ -143,18 +143,21 @@ Still open:
 ## Photoproduction branch (2026-11-19)
 
 On branch `photoproduction`: a Python port of the Christy–Bosted resonance fits and a
-photoabsorption interface that later parametrizations can extend.
+photoabsorption interface that later parametrizations can extend. File and function names
+below are the current ones, after the refactor described at the end of this section:
+`photoabsorption.py` became `inclusive.py`, and `photoproduction()` became `inclusive_sf()`,
+with `photoproduction` kept as an alias.
 
 ### What was added
 
 | file | content |
 |---|---|
 | `taggedpd/christy_bosted.py` | Port of `F1F209.f` (P. E. Bosted, M. E. Christy), in physics-code as `Tools/F1F209_test.f`: `RESMOD507`, `CHRISTY507`, `RESMODD`, `MEC`, `RESD`, `PIND`, and the A ≤ 2 branches of `F1F2IN09`. |
-| `taggedpd/photoabsorption.py` | `photoproduction(W, target, quantity, Q2)`, the `PhotoabsorptionModel` interface, `ChristyBosted`, `BelowThreshold`, `Blend`, `Piecewise`, `default_photoabsorption()`. |
-| `taggedpd/nucleon.py` | `ChristyBostedStructure`: p and n F1, F2 in (x, Q²) as a `NucleonStructure` provider. |
+| `taggedpd/inclusive.py` | `inclusive_sf(W, target, quantity, Q2)` (alias `photoproduction`), the `InclusiveModel` interface (alias `PhotoabsorptionModel`), `ChristyBosted`, `BelowThreshold`, `Blend`, `Piecewise`, `default_photoabsorption()`. |
+| `taggedpd/inclusive.py` (re-exported from `nucleon`) | `ChristyBostedStructure`: p and n F1, F2 in (x, Q²) as a `NucleonStructure` provider. |
 | `tests/test_christy_bosted.py` | Regression against the Fortran, the Q² → 0 limit, the neutron construction, and the interface. |
 | `tests/reference/christy_bosted_{sp,dp}.txt.gz`, `tests/reference/fortran/` | Fortran reference tables, the driver, and build instructions. |
-| `notebooks/build_photoproduction_notebook.py` → `photoproduction.ipynb` | Plots of σ_T and F1 for p, n, d, the neutron construction, small Q², binning, and extending the model. |
+| `notebooks/build_inclusive_notebook.py` → `inclusive.ipynb` | Plots of σ_T and F1 for p, n, d, the neutron construction, small Q², binning, and extending the model. |
 
 References (cited in the module, README and notebook): Christy & Bosted, PRC 81, 055213
 (2010), arXiv:0712.3731 (proton); Bosted & Christy, PRC 77, 065206 (2008),
@@ -167,10 +170,10 @@ abstracts.
 |---|---|---|
 | Which Fortran routines | Those needed for p, n, d: everything except the A > 2 branch, `F1F2QE09` and `RESDER` | `RESDER` needs `F1F207D2emat.dat`, which is not available; QE does not describe photodisintegration |
 | Single-precision literals in the Fortran | Use double precision in Python | Agreement with the double-literal Fortran is ~10⁻¹⁵; with the Fortran as shipped, ≤10⁻⁵ (p, n) and ≤2×10⁻³ (d, where W bins shift) |
-| 1 MeV W binning in `RESMODD` | `binned=True` in the low-level port (exact regression); smooth evaluation in `photoproduction` and `ChristyBostedStructure` | The binning is a table artifact. It produces a staircase in n and d (~1% steps above W = 1.2, up to tens of % within 25 MeV of threshold) |
+| 1 MeV W binning in `RESMODD` | `binned=True` in the low-level port (exact regression); smooth evaluation in `inclusive_sf` (formerly `photoproduction` and `ChristyBostedStructure` | The binning is a table artifact. It produces a staircase in n and d (~1% steps above W = 1.2, up to tens of % within 25 MeV of threshold) |
 | Default validity domain | The published fit ranges. Between the pion threshold and the lower fit edge, the same functions are used, labelled "threshold extrapolation". Zero below threshold for p and n; NaN outside all pieces | The user wants Christy–Bosted where it is valid, with room for low-W and high-W (Regge) models; NaN makes coverage gaps visible |
 | Model selection | Ordered `Piecewise` list, first matching domain wins; `return_source=True` reports which piece was used | New parametrizations are inserted without touching existing ones |
-| Module name | `photoabsorption.py` (the function is still `photoproduction`) | Exporting a function with the same name as its module from `__init__` would shadow the submodule |
+| Module name | `photoabsorption.py` at first, now `inclusive.py` (see the refactor below) | Exporting a function with the same name as its module from `__init__` would shadow the submodule |
 | `ChristyBostedStructure.FT_FL` | Returns (2F₁, 2F₁R) directly from the fit | Rebuilding F_L as (1+γ²)F₂/x − 2F₁ with the physical neutron mass is off by ~0.5%, because the fit uses the proton mass |
 
 ### Validation
@@ -223,7 +226,7 @@ use in published work; until then the 2009 fits remain the default and the refer
   - `taggedpd/christy_bosted21.py`: `RESMODP/N`, `RESCSP/N`, `SF`, `GETFY`, `DSIMPS`,
     `SMEARSUB`, `SMEARSUBLOWQ`, `RESCSD`, and `F1F2IN21` for A ≤ 2.
   - The CD-Bonn on-shell tables, gzipped, in `taggedpd/data/f1f2tables/`.
-  - `ChristyBosted2021` in `photoabsorption.py`, `default_photoabsorption(fit="2021")`,
+  - `ChristyBosted2021` in `inclusive.py`, `default_photoabsorption(fit="2021")`,
     and `ChristyBostedStructure(version="2021")`. All emit `PreliminaryFitWarning`, and
     every name carries "(PRELIMINARY)".
   - Tests in `tests/test_christy_bosted21.py`, with reference tables generated by
@@ -258,10 +261,10 @@ use in published work; until then the 2009 fits remain the default and the refer
   deuteron has no strength below the free-nucleon threshold (no MEC).
 - **Speed.** p and n ~1 µs per point; the deuteron ~110 µs per point.
 
-### Structure-function conventions in `photoproduction` (added 2026-11-19)
+### Structure-function conventions in `inclusive_sf` (added 2026-11-19)
 
 `quantity=` now also accepts `"sigma_L"`, `"R"`, `"F2"`, `"F_T"`, `"F_L"`, `"F_L_scaling"`
-and `"xF_L"`. The definitions are in the README table and in the `photoabsorption` module
+and `"xF_L"`. The definitions are in the README table and in the `inclusive` module
 docstring.
 
 | Question | Decision | Rationale |
@@ -285,6 +288,55 @@ installed). The `.venv` was created with `--system-site-packages --without-pip`,
 system pip was then used to install pytest, numpy 2, scipy and matplotlib into it. With
 the system numpy 1.26, `tests/test_nucleon.py::test_ww_integral_identity` fails because
 `np.trapezoid` needs numpy ≥ 2, although `pyproject.toml` declares numpy ≥ 1.22.
+
+### One inclusive layer for photoproduction and tagged DIS (refactor, 2026-11-19)
+
+**Motivation (W. Cosyn).** The Christy–Bosted fits should be usable in tagged DIS at finite
+Q² as well as for real photons, and the code should stay as general as possible.
+
+**Before the refactor** there were two parallel interfaces sharing the Christy–Bosted code:
+`NucleonStructure`, in (x, Q²) for p and n, used by `TaggedDIS`; and `PhotoabsorptionModel`,
+in (W, Q²) for p, n and d, with region switching and the conventions table. `TaggedDIS`
+could use only one provider everywhere, SLAC/LHAPDF could not be combined with
+Christy–Bosted, and F_T/F_L were defined in two places.
+
+**After the refactor:**
+
+| Piece | Role |
+|---|---|
+| `taggedpd/inclusive.py` (renamed from `photoabsorption.py`) | The single home for unpolarized inclusive input in (W, Q²). (W, Q²) is used because Q² = 0 is degenerate in (x, Q²). `inclusive_sf()` is the entry point; `photoproduction` and `PhotoabsorptionModel` remain as aliases |
+| `InclusiveModel.evaluate` | The only place where σ_L, R, F_T, F_L, F_L_scaling and xF_L are derived from F1 and F2 |
+| `FromNucleonStructure(provider, W/Q² domain)` | Any (x, Q²) provider (SLAC, LHAPDF, …) as a (W, Q²) piece. Default Q² ≥ 1, since DIS fits do not describe real photons |
+| `AsNucleonStructure(model, target_mass=True)` | Any model or `Piecewise` as a `NucleonStructure`; `FT_FL` returns `"F_T"` together with `"F_L"`, or with `"F_L_scaling"` if `target_mass=False` |
+| `resonance_dis_model(dis=SLAC, W_blend=(2.5, 3.0), fit="2009")` | `Blend` from CB to DIS over the window (only where both apply), DIS above it, the CB pieces, then DIS as catch-all (e.g. Q² > 8). The deuteron uses the CB pieces only |
+| `ChristyBostedStructure` | Now `AsNucleonStructure` of a single CB fit, defined in `inclusive.py` and lazily re-exported from `nucleon` (avoids a circular import) |
+| `Blend.domain` | Now the intersection of the W window with *both* models' domains |
+| `notebooks/inclusive.ipynb` (renamed) | New section 8: resonance + DIS model and its effect in tagged DIS |
+
+**Checks.**
+- About 8000 outputs (all quantities of `inclusive_sf` for p, n, d at three Q² values for
+  both fits; `ChristyBostedStructure`; `TaggedDIS` with the default and with the CB
+  structure) were saved before the refactor and compared after it. Everything is
+  bit-identical (≤ 8×10⁻¹⁵) except the deliberate change below.
+- Wrapping SLAC through `FromNucleonStructure` and `AsNucleonStructure` reproduces it to
+  10⁻¹⁴, and `TaggedDIS` gives an identical σ_red (`tests/test_inclusive.py`).
+- The blend is continuous at both edges.
+- In DIS kinematics the combined model reproduces SLAC exactly, and in the resonance region
+  it reproduces `ChristyBostedStructure`.
+
+**Deliberate change.** `ChristyBostedStructure` now converts x → W with the physical
+neutron mass for the neutron, like physics-code's `NucleonStructure::getF_CB` and the
+generic adapter. It previously used the fit's proton mass for both nucleons. The neutron
+changes by up to 1–2% near threshold (large x); the proton by < 10⁻⁵.
+
+**Physics observation.** Compared with SLAC everywhere (the paper's input), Christy–Bosted
+in the active neutron's resonance region changes the tagged σ_red by tens of percent, and
+by up to a factor ~2 at the Δ (x ≈ 0.8, Q² = 2), because the Bodek fit's neutron resonances
+are much weaker and broader. In the blend window the two fits agree within ~5% for the
+proton and ~13% for the neutron at Q² = 1.
+
+**Open.** No model covers real photons above W ≈ 3 GeV, or Q² < 1 above the CB range; these
+return NaN by default. That region is reserved for a Regge-type model.
 
 ## Known limitations and open items
 

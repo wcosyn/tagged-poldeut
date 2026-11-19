@@ -7,7 +7,7 @@ r"""PRELIMINARY Christy 2021 resonance-region fits for p, n and d (port of SIMC 
    checking its status with the author (M. E. Christy). For published work, use the 2009
    fits in :mod:`taggedpd.christy_bosted` (PRC 81, 055213 and PRC 77, 065206). Importing
    this module is harmless; constructing the photoabsorption model
-   :class:`taggedpd.photoabsorption.ChristyBosted2021` emits a :class:`PreliminaryFitWarning`.
+   :class:`taggedpd.inclusive.ChristyBosted2021` emits a :class:`PreliminaryFitWarning`.
 
 Origin
 ------

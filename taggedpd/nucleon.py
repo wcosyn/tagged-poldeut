@@ -33,10 +33,12 @@ GeV^2. Three implementations are shipped:
     Leading-order parton-model F2 and g1 from any LHAPDF6 sets (optional,
     requires the ``lhapdf`` python module), WW g2 likewise gridded.
 
-:class:`ChristyBostedStructure`
-    Unpolarized F1, F2 of p and n in the resonance region (W < 3 GeV) from the
-    Christy-Bosted fits [PRC 81 (2010) 055213; PRC 77 (2008) 065206], port of
-    ``F1F209.f`` in :mod:`taggedpd.christy_bosted`.
+:class:`~taggedpd.inclusive.ChristyBostedStructure`
+    Unpolarized F1, F2 of p and n in the resonance region from the Christy-Bosted
+    fits [PRC 81 (2010) 055213; PRC 77 (2008) 065206]. Defined in
+    :mod:`taggedpd.inclusive` (re-exported here), where any (W, Q^2) model, e.g.
+    Christy-Bosted in the resonance region + SLAC/LHAPDF in DIS, can be turned into
+    a provider with ``AsNucleonStructure``.
 
 :class:`CombinedStructure` glues an unpolarized and a polarized provider
 together; :func:`default_structure` returns SLAC (R = 0.18) + GRSV2000, the
@@ -569,96 +571,15 @@ class GriddedStructure(NucleonStructure):
         return self._interp(self._get("gg", nucleon), x, Q2)
 
 
-# ===========================================================================
-# Christy-Bosted resonance region
-# ===========================================================================
-class ChristyBostedStructure(NucleonStructure):
-    """Unpolarized F1, F2 of p and n from the Christy-Bosted resonance-region fits.
-
-    Proton: Christy & Bosted, PRC 81, 055213 (2010); neutron: 2(p+n)/2 - p with the
-    nucleon average from Bosted & Christy, PRC 77, 065206 (2008). See
-    :mod:`taggedpd.christy_bosted` for details, in particular how the neutron is
-    obtained (and that it uses the proton's R). Fit ranges: W < 3.1 GeV (p),
-    W < 3.0 GeV (n), Q2 < 8 GeV^2; ``in_range`` checks this. Outside it the
-    functions are evaluated anyway (extrapolation), as the FORTRAN does.
-
-    W is computed from x as for a free proton, W^2 = M^2 + Q^2 (1/x - 1) with the
-    fit's proton mass, also for the neutron (the fit's convention). F2 follows
-    from F1 and R with the (1 + gamma^2) factor (``target_mass`` is True), and
-    ``FT_FL`` returns F_[UU,T] = 2F1, F_[UU,L] = R F_[UU,T] directly from the fit
-    (rebuilding F_L from F2 with the physical neutron mass in gamma would
-    introduce a spurious ~0.5% difference).
-
-    Parameters
-    ----------
-    binned : bool
-        Reproduce the FORTRAN's 1 MeV W binning in the neutron (default False: smooth).
-    version : {"2009", "2021"}
-        "2009" (default): the published fits above. "2021": the **PRELIMINARY**,
-        unpublished F1F221 fit of M. E. Christy (SIMC ``F1F2IN21_v1.0.f``, see
-        :mod:`taggedpd.christy_bosted21`), with its own neutron fit (own R) and range
-        W^2 < 20, Q^2 < 30 GeV^2; emits a PreliminaryFitWarning.
-    """
-
-    target_mass = True
-
-    def __init__(self, binned=False, version="2009"):
-        if version not in ("2009", "2021"):
-            raise ValueError("version must be '2009' or '2021'")
-        if version == "2021":
-            import warnings
-            from .christy_bosted21 import PreliminaryFitWarning
-            warnings.warn("ChristyBostedStructure(version='2021') uses the PRELIMINARY, "
-                          "unpublished F1F221 fit (SIMC F1F2IN21_v1.0.f, M. E. Christy).",
-                          PreliminaryFitWarning, stacklevel=2)
-        self.binned = binned
-        self.version = version
-        self.name = "Christy-Bosted" if version == "2009" else "Christy 2021 (PRELIMINARY)"
-
-    @staticmethod
-    def W2(x, Q2):
-        from .christy_bosted import MP_CB
-        x = np.asarray(x, float)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            return MP_CB**2 + np.asarray(Q2, float) * (1.0 / x - 1.0)
-
-    def in_range(self, x, Q2, nucleon="n"):
-        w2 = self.W2(x, Q2)
-        W = np.sqrt(np.maximum(w2, 0.0))
-        Q2 = np.asarray(Q2, float)
-        if self.version == "2021":
-            return (W > 1.08) & (w2 < 20.0) & (Q2 >= 0) & (Q2 < 30.0)
-        Wmax = 3.1 if _is_proton(nucleon) else 3.0
-        return (W > 1.1) & (W < Wmax) & (Q2 >= 0) & (Q2 < 8.0)
-
-    def F1F2R(self, x, Q2, nucleon="n"):
-        """(F1, F2, R) from the fit; zero outside 0 < x < 1."""
-        x = np.asarray(x, float)
-        Q2 = np.asarray(Q2, float)
-        ok = (x > 0) & (x < 1)
-        w2 = np.where(ok, self.W2(np.where(ok, x, 0.5), Q2), 0.0)
-        tgt = "p" if _is_proton(nucleon) else "n"
-        if self.version == "2021":
-            from .christy_bosted21 import rescsn, rescsp, sf21
-            f1p, _, f2p, f1n, _, f2n = sf21(w2, Q2)
-            F1, F2 = (f1p, f2p) if tgt == "p" else (f1n, f2n)
-            sT, sL = rescsp(w2, Q2) if tgt == "p" else rescsn(w2, Q2)
-            with np.errstate(divide="ignore", invalid="ignore"):
-                R = np.where(sT > 0, sL / sT, 0.0)
-        else:
-            from .christy_bosted import f1f2in09
-            F1, F2, R = f1f2in09(tgt, Q2, w2, binned=self.binned)
-        return np.where(ok, F1, 0.0), np.where(ok, F2, 0.0), np.where(ok, R, 0.0)
-
-    def F1F2(self, x, Q2, nucleon="n"):
-        return self.F1F2R(x, Q2, nucleon)[:2]
-
-    def FT_FL(self, x, Q2, nucleon="n"):
-        F1, _, R = self.F1F2R(x, Q2, nucleon)
-        return 2.0 * F1, 2.0 * F1 * R
-
-
 def default_structure(R=0.18, target_mass=True, ww="exact"):
     """SLAC/Bodek F2 (R = 0.18) + GRSV2000 LO g1 with WW g2: the paper's numerical input."""
     return CombinedStructure(SLACStructure(R=R, target_mass=target_mass),
                              GRSV2000Structure(ww=ww))
+
+
+def __getattr__(name):
+    """Lazy re-export of ChristyBostedStructure (defined in taggedpd.inclusive, which imports this module)."""
+    if name == "ChristyBostedStructure":
+        from .inclusive import ChristyBostedStructure
+        return ChristyBostedStructure
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
