@@ -431,7 +431,7 @@ md(r"""
 ## 8. Resonance region + DIS in one model, and its use in tagged DIS
 
 `resonance_dis_model()` combines Christy–Bosted in the resonance region with a DIS provider
-(default: the paper's SLAC/Bodek $F_2$ with $R=0.18$; any `NucleonStructure`, e.g. LHAPDF, works),
+(default: the paper's SLAC/Bodek $F_2$ with $R=0.18$; any `NucleonStructure` works, e.g. LHAPDF, section 9),
 blended linearly over $2.5<W<3$ GeV where both apply, and the DIS provider beyond the
 Christy–Bosted range. `AsNucleonStructure(model)` turns any such $(W,Q^2)$ model into an $(x,Q^2)$
 provider for `TaggedDIS`; polarized input is added with `CombinedStructure`. The defaults of
@@ -485,7 +485,145 @@ matters only for kinematics where the paper's DIS treatment is not intended to a
 
 # ---------------------------------------------------------------------------
 md(r"""
-## 9. Speed
+## 9. LHAPDF as the DIS input
+
+`LHAPDFStructure(unpolarized_set, polarized_set)` gives the leading-order parton-model structure
+functions from LHAPDF6 sets,
+
+$$F_2=\sum_q e_q^2\,x\,(q+\bar q),\qquad g_1=\tfrac12\sum_q e_q^2\,(\Delta q+\Delta\bar q),$$
+
+with $u\leftrightarrow d$ for the neutron, $F_1=F_2/(2x(1+R))$ ($R=0.18$, no target-mass factor) and
+$g_1+g_2$ from Wandzura–Wilczek. Below, CT18LO (unpolarized) and NNPDFpol11_100 (polarized) are
+compared with the defaults SLAC/Bodek and GRSV2000. These are LO formulas: no NLO coefficient
+functions, no target-mass or higher-twist corrections, so they are not meant for the resonance
+region or low $Q^2$ (LHAPDF extrapolates below a set's $Q^2_{\min}$: 1.68 GeV² for CT18LO,
+1 GeV² for NNPDFpol11_100). Each call goes to LHAPDF; for event generation use
+`GriddedStructure(LHAPDFStructure(...))`.
+
+The cells need LHAPDF's python bindings and `lhapdf install CT18LO NNPDFpol11_100`; without them
+they are skipped.
+""")
+
+code(r"""
+from taggedpd import LHAPDFStructure, GriddedStructure
+try:
+    import lhapdf
+    lhapdf.setVerbosity(0)
+    missing = {'CT18LO', 'NNPDFpol11_100'} - set(lhapdf.availablePDFSets())
+    HAVE_LHAPDF = not missing
+    if missing:
+        print('LHAPDF sets not installed:', missing, '-> skipping section 9')
+except ImportError:
+    HAVE_LHAPDF = False
+    print('no lhapdf python module -> skipping section 9')
+
+if HAVE_LHAPDF:
+    lh = LHAPDFStructure('CT18LO', 'NNPDFpol11_100')
+    slac, grsv = SLACStructure(), GRSV2000Structure()
+    print(lh.name)
+""")
+
+code(r"""
+# F2 of p and n, and F2n/F2p, vs x at three Q^2
+if HAVE_LHAPDF:
+    x = np.geomspace(0.01, 0.9, 300)
+    fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+    for i, Q2 in enumerate((2.0, 10.0, 50.0)):
+        for ax, tgt in zip(axs[:2], 'pn'):
+            ax.plot(x, lh.F1F2(x, Q2, tgt)[1], c=f'C{i}', label=f'$Q^2$={Q2:g} CT18LO')
+            ax.plot(x, slac.F1F2(x, Q2, tgt)[1], ':', c=f'C{i}', label=f'$Q^2$={Q2:g} SLAC')
+        axs[2].plot(x, lh.F1F2(x, Q2, 'n')[1] / lh.F1F2(x, Q2, 'p')[1], c=f'C{i}', label=f'$Q^2$={Q2:g} CT18LO')
+        axs[2].plot(x, slac.F1F2(x, Q2, 'n')[1] / slac.F1F2(x, Q2, 'p')[1], ':', c=f'C{i}', label=f'$Q^2$={Q2:g} SLAC')
+    for ax, t in zip(axs, ('$F_2^p$', '$F_2^n$', '$F_2^n/F_2^p$')):
+        ax.set_xscale('log'); ax.set_xlabel('$x$'); ax.set_ylabel(t)
+    axs[0].legend(fontsize=7, ncol=2); axs[2].set_ylim(0.2, 1.1)
+    fig.tight_layout(); save(fig, 'pp_lhapdf_F2')
+""")
+
+code(r"""
+# resonance region + DIS with CT18LO instead of SLAC as the DIS part (blend over 2.5 < W < 3 GeV)
+if HAVE_LHAPDF:
+    mres_lh = resonance_dis_model(dis=lh)
+    W = np.linspace(1.1, 5.0, 1500)
+    fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+    for ax, tgt in zip(axs, 'pn'):
+        for i, Q2 in enumerate((2.0, 5.0)):
+            ax.plot(W, inclusive_sf(W, tgt, 'F2', Q2=Q2, model=mres_lh), c=f'C{i}', label=f'$Q^2$={Q2:g}: CB + CT18LO')
+            ax.plot(W, inclusive_sf(W, tgt, 'F2', Q2=Q2, model=mres), '--', c=f'C{i}', label=f'$Q^2$={Q2:g}: CB + SLAC')
+        ax.axvspan(2.5, 3.0, color='0.9', zorder=0)
+        ax.set_title(f'{tgt}: $F_2$ (shaded: blend window)'); ax.set_xlabel('$W$ [GeV]'); ax.legend(fontsize=7)
+    fig.tight_layout(); save(fig, 'pp_lhapdf_resonance_dis')
+""")
+
+code(r"""
+# polarized: x g1 and x (g1 + g2) of p and n at Q^2 = 5, NNPDFpol11_100 vs GRSV2000
+if HAVE_LHAPDF:
+    x = np.geomspace(0.005, 0.9, 300); Q2 = 5.0
+    fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+    for ax, tgt in zip(axs, 'pn'):
+        ax.plot(x, x * lh.g1(x, Q2, tgt), c='C0', label=r'$xg_1$ NNPDFpol11_100')
+        ax.plot(x, x * grsv.g1(x, Q2, tgt), ':', c='C0', label=r'$xg_1$ GRSV2000')
+        ax.plot(x, x * lh.g1_plus_g2(x, Q2, tgt), c='C1', label=r'$x(g_1+g_2)_{\rm WW}$ NNPDFpol11_100')
+        ax.plot(x, x * grsv.g1_plus_g2(x, Q2, tgt), ':', c='C1', label=r'$x(g_1+g_2)_{\rm WW}$ GRSV2000')
+        ax.axhline(0, c='0.6', lw=0.8)
+        ax.set_xscale('log'); ax.set_xlabel('$x$'); ax.set_title(f'{tgt}, $Q^2$ = {Q2:g} GeV$^2$'); ax.legend(fontsize=8)
+    fig.tight_layout(); save(fig, 'pp_lhapdf_g1')
+    from scipy.integrate import quad
+    for tgt in 'pn':
+        G = [quad(lambda y: m.g1(y, Q2, tgt), 1e-4, 1, limit=200)[0] for m in (lh, grsv)]
+        print(f'Gamma_1^{tgt}(Q2={Q2:g}) over 1e-4 < x < 1:  NNPDFpol11_100 {G[0]:+.4f}   GRSV2000 {G[1]:+.4f}')
+""")
+
+code(r"""
+# tagged DIS on the deuteron: reduced cross section and vector asymmetry A^V, LHAPDF vs default input
+if HAVE_LHAPDF:
+    td_def = TaggedDIS('AV18')                                    # SLAC + GRSV2000 (paper)
+    td_lh = TaggedDIS('AV18', structure=GriddedStructure(lh))    # CT18LO + NNPDFpol11_100
+    x = np.linspace(0.05, 0.6, 200)
+    fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+    for i, Q2 in enumerate((5.0, 20.0)):
+        kin = Kinematics.from_y(x, Q2, 0.6)
+        axs[0].plot(x, td_lh.reduced_cross_section(kin, 1.0, 0.1, 0.0) / td_def.reduced_cross_section(kin, 1.0, 0.1, 0.0),
+                    c=f'C{i}', label=f'$Q^2$ = {Q2:g} GeV$^2$')
+        axs[1].plot(x, td_lh.vector_asymmetry(kin, 1.0, 0.1), c=f'C{i}', label=f'$Q^2$={Q2:g} CT18LO + NNPDFpol11')
+        axs[1].plot(x, td_def.vector_asymmetry(kin, 1.0, 0.1), ':', c=f'C{i}', label=f'$Q^2$={Q2:g} SLAC + GRSV2000')
+    axs[0].axhline(1, c='0.6', lw=0.8)
+    axs[0].set_xlabel('$x$'); axs[0].set_ylabel(r'$\sigma_{\rm red}$ (LHAPDF) / (default)'); axs[0].legend()
+    axs[1].axhline(0, c='0.6', lw=0.8)
+    axs[1].set_xlabel('$x$'); axs[1].set_ylabel('$A^V$ (parallel)'); axs[1].legend(fontsize=8)
+    for ax in axs:
+        ax.set_title(r'$\alpha_p=1$, $p_T=0.1$ GeV, $y=0.6$')
+    fig.tight_layout(); save(fig, 'pp_lhapdf_tagged')
+""")
+
+md(r"""
+**What the comparison shows:**
+
+* **$F_2$, $x\gtrsim0.1$:** CT18LO and SLAC agree to ~10–15% (CT18LO is lower at large $x$, where
+  the Bodek fit contains resonance, target-mass and higher-twist strength). The ratio $F_2^n/F_2^p$
+  is similar, except at large $x$ and low $Q^2$, where the Bodek fit's resonances show up.
+* **$F_2$, small $x$:** the Bodek fit is flat and has hardly any $Q^2$ dependence there; it was fit to
+  SLAC data at larger $x$. CT18LO has the rise and the scaling violations seen at HERA. Use SLAC
+  below $x\approx0.1$ with care (at $x=0.05$, $Q^2=10$ GeV² the two differ by ~30%).
+* **Kink in CT18LO near $x\approx0.01$–$0.02$:** a property of the set. Its strange distribution is
+  zero (slightly negative, $\sim-10^{-4}$) below $x\approx0.02$, also after evolution to $Q^2=10$ GeV²,
+  and rises steeply above.
+* **Resonance + DIS model:** with CT18LO as the DIS part, $F_2$ has kinks at the edges of the blend
+  window ($W=2.5$ and $3$ GeV), because Christy–Bosted and CT18LO differ there by up to ~15% at
+  $Q^2=2$ GeV² (a linear blend is continuous but not smooth). With SLAC they agree better at the
+  window.
+* **Polarized:** NNPDFpol11_100 and GRSV2000 have similar $g_1$; the first moments differ by a few %
+  ($\Gamma_1^p\approx0.142$ vs 0.150 and $\Gamma_1^n\approx-0.062$ vs $-0.060$ at $Q^2=5$ GeV²).
+  The zero crossing of $g_1^n$ is at a slightly higher $x$ for NNPDFpol11.
+* **Tagged DIS:** the unpolarized reduced cross section changes by up to ±30% at small $x$ and up to
+  a factor ~2 at $x=0.6$, $Q^2=5$ GeV² (the $F_2$ differences above, at the active nucleon's $x$).
+  The vector asymmetry $A^V$ differs by up to ~0.035 in absolute value, and its zero crossing moves
+  from $x\approx0.45$ to $\approx0.5$.
+""")
+
+# ---------------------------------------------------------------------------
+md(r"""
+## 10. Speed
 
 Everything is vectorized. With the 2009 fits, p and n cost ~1 µs per point and the deuteron (Fermi
 smearing over 20 or 200 bins) ~30 µs. With the 2021 fit, the deuteron integrates over 48–76 $y$ nodes,
