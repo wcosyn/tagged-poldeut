@@ -19,6 +19,7 @@ Development history, validation details and open items: [docs/DEVELOPMENT_NOTES.
 pip install -e .            # runtime: numpy only
 python -m pytest            # needs pytest + scipy
 python notebooks/build_notebook.py --run   # regenerate notebook + PNGs in notebooks/figures/
+python notebooks/build_photoproduction_notebook.py --run   # photoproduction / Christy-Bosted notebook
 ```
 
 ## Usage
@@ -78,6 +79,8 @@ whichever is which. The paper writes all formulas for proton tagging (Eq. 2.2).
 | `nucleon.py` | nucleon SF providers: SLAC/Bodek F₂ + R, GRSV2000 g₁ + WW g₂, LHAPDF, grid wrapper | Sec. VI A |
 | `crosssection.py` | tagged SFs, Part I master formula, σ_red, dσ, polarization, asymmetries | Secs. II, V, VI; Part I Secs. IV–V |
 | `sumrules.py` | integrals over the spectator momentum | Eqs. (4.23)–(4.25), App. A |
+| `christy_bosted.py` | port of the Christy–Bosted `F1F209.f` fits: p, n, d F1/F2/R, σ_T, σ_L | PRC 81, 055213; PRC 77, 065206 |
+| `photoabsorption.py` | σ_T / F1 of p, n, d: Christy–Bosted plus pluggable models (low W, Regge, …) | — |
 
 ## Conventions (read this)
 
@@ -120,6 +123,56 @@ Note: the paper's text quotes DSSV09 for g₁ⁿ, but the C++ code (and thus the
 uses GRSV2000 LO. These are different fits (GRSV2000: PRD 63, 094005 (2001); DSSV09:
 PRD 80, 034030 (2009)).
 
+## Photoproduction and the resonance region (Christy–Bosted)
+
+```python
+from taggedpd import photoproduction
+sig = photoproduction(W, "n")                         # sigma_T(gamma n) [microbarn], Q2 = 0
+F1d = photoproduction(W, "d", quantity="F1", Q2=0.5)  # deuteron, per nucleus
+sig, src = photoproduction(W, "p", return_source=True)  # which parametrization was used per point
+```
+
+`taggedpd.christy_bosted` is a vectorized port of `F1F209.f`, the Fortran fits by
+P. E. Bosted and M. E. Christy. **Please cite the original work:**
+
+* M. E. Christy and P. E. Bosted, Phys. Rev. C **81**, 055213 (2010), arXiv:0712.3731:
+  the proton fit, with σ_T and σ_L separately, 0 ≤ Q² < 8 GeV², 1.1 < W < 3.1 GeV, real
+  photons included;
+* P. E. Bosted and M. E. Christy, Phys. Rev. C **77**, 065206 (2008), arXiv:0711.0159:
+  the deuteron/neutron fit, transverse only, 0 ≤ Q² < 10 GeV², 1.2 < W < 3 GeV.
+
+**How the neutron is handled.** There is no neutron fit. The deuteron fit parametrizes the
+free-nucleon average F̄₁ = (F₁ₚ + F₁ₙ)/2. After Fermi smearing with the deuteron momentum
+distribution and adding an empirical MEC/dip term, F̄₁ describes the inclusive deuteron
+data. The neutron is then F₁ₙ = 2F̄₁ − F₁ₚ(Christy). It takes R = σ_L/σ_T from the proton,
+because the deuteron fit is transverse only. The deuteron result is per nucleus and
+inelastic only: photodisintegration γd → pn is not included. Details and caveats are in
+the module docstring and in `notebooks/photoproduction.ipynb`.
+
+`photoproduction()` evaluates an ordered list of models (`photoabsorption.Piecewise`).
+Each point uses the first model whose domain contains it. The default list is:
+Christy–Bosted inside its published ranges; the Christy–Bosted forms extrapolated between
+the pion threshold and the lower fit edge; and zero below threshold for p and n. Outside
+all of them the result is NaN, unless `outside="zero"` or `outside="raise"` is set. To add
+a parametrization, subclass `PhotoabsorptionModel` and implement `domain` and `sigma_T`
+(or `F1`), then put the model *before* the Christy–Bosted entries. `Blend` gives smooth
+transitions between models. See the module docstring for an example.
+
+For tagged DIS in the resonance region, `ChristyBostedStructure()` is a `NucleonStructure`
+provider of F1 and F2 in (x, Q²); combine it with a polarized provider through
+`CombinedStructure`.
+
+Implementation notes:
+
+* The port reproduces the Fortran compiled with double-precision literals to ~10⁻¹⁵. It
+  matches the Fortran as shipped (single-precision literals) to 10⁻⁵ for p and n and
+  2×10⁻³ for d.
+* `RESMODD` tabulates its resonance shapes in 1 MeV bins of W, which turns n and d into a
+  staircase: steps of ~1% above W = 1.2 GeV and tens of percent within 25 MeV of
+  threshold. The low-level functions keep this behaviour (`binned=True`) for exact
+  regression. `photoproduction` and `ChristyBostedStructure` evaluate the shapes smoothly
+  by default.
+
 ## Validation (see `tests/` and `notebooks/paper_figures.ipynb`)
 
 * LF distributions vs. C++ `getLFdistributions_new`, all 9 functions on the full
@@ -134,6 +187,10 @@ PRD 80, 034030 (2009)).
   expected values are exact.
 * Closed-form asymmetries (6.4), (6.8), (6.12), (6.16) and the Table II extremes reproduced
   by the generic pure-state construction of Part I.
+* Christy–Bosted: all 14 outputs (proton F1, R, σ_T, σ_L; nucleon average; F1, F2, R of
+  p, n, d) agree with the Fortran on a (W, Q²) grid including Q² = 0, to machine
+  precision (`tests/test_christy_bosted.py`, reference tables and generator in
+  `tests/reference/`).
 * Proton vs neutron tagging: identical deuteron distributions, and every tagged structure
   function scales exactly with the corresponding proton/neutron input (e.g. the
   unpolarized cross-section ratio equals (F_T + εF_L)_p/(F_T + εF_L)_n; A^V_∥ changes

@@ -11,13 +11,18 @@ with the cross-section decomposition of Part I (same authors). Main entry points
 * :class:`~taggedpd.densities.LFDistributions`          -- neutron LF momentum/spin distributions (Sec. IV)
 * :mod:`~taggedpd.nucleon`                              -- nucleon F1, F2, g1, g2 providers
 * :class:`~taggedpd.crosssection.TaggedDIS`             -- structure functions, sigma_red, dsigma, asymmetries
+* :func:`~taggedpd.photoabsorption.photoproduction`     -- sigma_T / F1 of p, n, d (Christy-Bosted + pluggable models)
+* :mod:`~taggedpd.christy_bosted`                       -- port of the Christy-Bosted F1F209 fits
 """
 
 from .constants import M_DEUTERON, M_NUCLEON, M_NEUTRON, M_PROTON
 from .wavefunctions import DeuteronWavefunction, available_wavefunctions
 from .densities import LFDistributions, NeutronDistributions, cm_momentum, spectator_lf_from_rest_frame
 from .nucleon import (NucleonStructure, SLACStructure, GRSV2000Structure, LHAPDFStructure,
-                      CombinedStructure, GriddedStructure, default_structure)
+                      CombinedStructure, GriddedStructure, ChristyBostedStructure,
+                      default_structure)
 from .crosssection import Kinematics, Polarization, TaggedDIS
+from .photoabsorption import (photoproduction, PhotoabsorptionModel, ChristyBosted, Piecewise,
+                              default_photoabsorption)
 
 __version__ = "0.1.0"

@@ -140,6 +140,77 @@ Still open:
   include path. `lib/libGPD.so` and `bin/conv_T_test` are therefore still the old,
   non-loading builds.
 
+## Photoproduction branch (2026-11-19)
+
+On branch `photoproduction`: a Python port of the Christy–Bosted resonance fits and a
+photoabsorption interface that later parametrizations can extend.
+
+### What was added
+
+| file | content |
+|---|---|
+| `taggedpd/christy_bosted.py` | Port of `F1F209.f` (P. E. Bosted, M. E. Christy), in physics-code as `Tools/F1F209_test.f`: `RESMOD507`, `CHRISTY507`, `RESMODD`, `MEC`, `RESD`, `PIND`, and the A ≤ 2 branches of `F1F2IN09`. |
+| `taggedpd/photoabsorption.py` | `photoproduction(W, target, quantity, Q2)`, the `PhotoabsorptionModel` interface, `ChristyBosted`, `BelowThreshold`, `Blend`, `Piecewise`, `default_photoabsorption()`. |
+| `taggedpd/nucleon.py` | `ChristyBostedStructure`: p and n F1, F2 in (x, Q²) as a `NucleonStructure` provider. |
+| `tests/test_christy_bosted.py` | Regression against the Fortran, the Q² → 0 limit, the neutron construction, and the interface. |
+| `tests/reference/christy_bosted_{sp,dp}.txt.gz`, `tests/reference/fortran/` | Fortran reference tables, the driver, and build instructions. |
+| `notebooks/build_photoproduction_notebook.py` → `photoproduction.ipynb` | Plots of σ_T and F1 for p, n, d, the neutron construction, small Q², binning, and extending the model. |
+
+References (cited in the module, README and notebook): Christy & Bosted, PRC 81, 055213
+(2010), arXiv:0712.3731 (proton); Bosted & Christy, PRC 77, 065206 (2008),
+arXiv:0711.0159 (deuteron and neutron). The fit ranges quoted are taken from these
+abstracts.
+
+### Decisions
+
+| Question | Decision | Rationale |
+|---|---|---|
+| Which Fortran routines | Those needed for p, n, d: everything except the A > 2 branch, `F1F2QE09` and `RESDER` | `RESDER` needs `F1F207D2emat.dat`, which is not available; QE does not describe photodisintegration |
+| Single-precision literals in the Fortran | Use double precision in Python | Agreement with the double-literal Fortran is ~10⁻¹⁵; with the Fortran as shipped, ≤10⁻⁵ (p, n) and ≤2×10⁻³ (d, where W bins shift) |
+| 1 MeV W binning in `RESMODD` | `binned=True` in the low-level port (exact regression); smooth evaluation in `photoproduction` and `ChristyBostedStructure` | The binning is a table artifact. It produces a staircase in n and d (~1% steps above W = 1.2, up to tens of % within 25 MeV of threshold) |
+| Default validity domain | The published fit ranges. Between the pion threshold and the lower fit edge, the same functions are used, labelled "threshold extrapolation". Zero below threshold for p and n; NaN outside all pieces | The user wants Christy–Bosted where it is valid, with room for low-W and high-W (Regge) models; NaN makes coverage gaps visible |
+| Model selection | Ordered `Piecewise` list, first matching domain wins; `return_source=True` reports which piece was used | New parametrizations are inserted without touching existing ones |
+| Module name | `photoabsorption.py` (the function is still `photoproduction`) | Exporting a function with the same name as its module from `__init__` would shadow the submodule |
+| `ChristyBostedStructure.FT_FL` | Returns (2F₁, 2F₁R) directly from the fit | Rebuilding F_L as (1+γ²)F₂/x − 2F₁ with the physical neutron mass is off by ~0.5%, because the fit uses the proton mass |
+
+### Validation
+
+- All 14 output columns (proton F1, R, σ_T, σ_L; F̄₁; F1, F2, R of p, n, d) are compared
+  with the Fortran on 2938 (W, Q²) points: W from 0.95 to 3.2 GeV, 13 values of Q² from 0
+  to 8 GeV². Maximum relative difference: 3×10⁻¹⁵ against the double-literal build,
+  1×10⁻⁵ (p, n) and 9×10⁻⁴ (d) against the build as shipped.
+- At Q² = 0: σ_L = F2 = R = 0, σ_T > 0, and σ_T ↔ F1 equals the fit's own conversion. The
+  γp Δ peak is 486 µb at W = 1.210 GeV.
+- The baseline suite (53 passed, 1 skipped) is unchanged; the full suite is 69 passed,
+  1 skipped.
+- Speed: p ~1.1 µs per point, n ~1.4 µs, d ~27 µs. The deuteron smearing loop was
+  restricted to the points in each bin, which made it about 2.6× faster.
+
+### Observations about the fits (not bugs in the port)
+
+1. **Steep Q² dependence near Q² = 0.** Example: the height of the proton's second
+   resonance has the factor 1 + 6823 Q²/(1 + 33521 Q²). At W = 1.5 the proton σ_T changes
+   by +22% and the neutron by −30% between Q² = 0 and 10⁻³ GeV². For quasi-real photons
+   the Q² = 0 value is therefore not the right one.
+2. **The deuteron below W ≈ 1.2 at Q² = 0 is dominated by the MEC term**, ~300 µb near
+   threshold. It uses max(0.3, Q²), so for real photons it is frozen at Q² = 0.3, and it
+   lies outside the deuteron fit's W range. It is not constrained by real-photon data
+   there.
+3. **σ(γn)/σ(γp) ≈ 1.15 at the Δ peak.** The Δ is isovector, so this most likely comes
+   from the unfolding (smearing and MEC) used to extract the neutron.
+4. The physics-code C++ (`NucleonStructure::getF_CB`, `NuclStructure`) calls `F1F2IN09`
+   in (x, Q²). Its W² = M² + Q²(1/x − 1) equals M² at Q² = 0, below the 1.155 GeV² cut, so
+   real photons cannot be reached through that interface. The proton is passed as Z = 1,
+   A = 0; this works only because only `int(A) < 2` is tested.
+
+### Environment note
+
+On this machine `python3 -m venv` cannot bootstrap pip (`python3.12-venv` is not
+installed). The `.venv` was created with `--system-site-packages --without-pip`, and the
+system pip was then used to install pytest, numpy 2, scipy and matplotlib into it. With
+the system numpy 1.26, `tests/test_nucleon.py::test_ww_integral_identity` fails because
+`np.trapezoid` needs numpy ≥ 2, although `pyproject.toml` declares numpy ≥ 1.22.
+
 ## Known limitations and open items
 
 - Impulse approximation only: no FSI, so the T-odd structures are zero. The
