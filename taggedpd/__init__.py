@@ -13,6 +13,7 @@ with the cross-section decomposition of Part I (same authors). Main entry points
 * :class:`~taggedpd.crosssection.TaggedDIS`             -- structure functions, sigma_red, dsigma, asymmetries
 * :func:`~taggedpd.photoabsorption.photoproduction`     -- sigma_T / F1 of p, n, d (Christy-Bosted + pluggable models)
 * :mod:`~taggedpd.christy_bosted`                       -- port of the Christy-Bosted F1F209 fits
+* :mod:`~taggedpd.christy_bosted21`                     -- PRELIMINARY 2021 fit (port of SIMC F1F2IN21_v1.0.f)
 """
 
 from .constants import M_DEUTERON, M_NUCLEON, M_NEUTRON, M_PROTON
@@ -22,7 +23,7 @@ from .nucleon import (NucleonStructure, SLACStructure, GRSV2000Structure, LHAPDF
                       CombinedStructure, GriddedStructure, ChristyBostedStructure,
                       default_structure)
 from .crosssection import Kinematics, Polarization, TaggedDIS
-from .photoabsorption import (photoproduction, PhotoabsorptionModel, ChristyBosted, Piecewise,
-                              default_photoabsorption)
+from .photoabsorption import (photoproduction, PhotoabsorptionModel, ChristyBosted,
+                              ChristyBosted2021, Piecewise, default_photoabsorption)
 
 __version__ = "0.1.0"

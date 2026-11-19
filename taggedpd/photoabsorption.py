@@ -20,6 +20,12 @@ Outside every piece the result is NaN (``outside="nan"``; also "zero" or
 "raise"), so that missing kinematic coverage is never silent. Pass
 ``return_source=True`` to get, per point, the name of the piece that was used.
 
+``default_photoabsorption(fit="2021")`` uses instead the **PRELIMINARY** 2021 fit of
+M. E. Christy (:class:`ChristyBosted2021`, port of SIMC's ``F1F2IN21_v1.0.f``): it has
+its own neutron fit and covers W^2 < 20 GeV^2, Q^2 < 30 GeV^2, but it is unpublished.
+Constructing it emits a :class:`~taggedpd.christy_bosted21.PreliminaryFitWarning`.
+The 2009 fits stay the default.
+
 Adding a parametrization
 ------------------------
 Subclass :class:`PhotoabsorptionModel`, implement ``sigma_T`` *or* ``F1`` (the
@@ -62,13 +68,16 @@ Conventions
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 from . import christy_bosted as cb
+from . import christy_bosted21 as cb21
 
-__all__ = ["PhotoabsorptionModel", "ChristyBosted", "BelowThreshold", "Piecewise", "Blend",
-           "default_photoabsorption", "photoproduction", "W_from_nu", "nu_from_W",
-           "PION_THRESHOLD"]
+__all__ = ["PhotoabsorptionModel", "ChristyBosted", "ChristyBosted2021", "BelowThreshold",
+           "Piecewise", "Blend", "default_photoabsorption", "photoproduction", "W_from_nu",
+           "nu_from_W", "PION_THRESHOLD"]
 
 _M = cb.MP_CB
 #: free-nucleon pion-production threshold W = m_p + m_pi0 [GeV], as in the fits
@@ -186,6 +195,70 @@ class ChristyBosted(PhotoabsorptionModel):
         return cb.f1f2in09(_norm_target(target), Q2, W * W, binned=self.binned)
 
 
+class ChristyBosted2021(PhotoabsorptionModel):
+    r"""**PRELIMINARY** Christy 2021 fit (F1F221 v1.0 prerelease 1), see :mod:`taggedpd.christy_bosted21`.
+
+    Source: ``F1F2IN21_v1.0.f`` by M. E. Christy, distributed with JLab SIMC
+    (https://github.com/JeffersonLab/simc_gfortran); deuteron/neutron fit by Christy,
+    Kalantarians, Ethier, Melnitchouk, "to be published". **Unpublished**: check its
+    status with the author before using it in published work; the 2009 fits
+    (:class:`ChristyBosted`) are the citable alternative. Construction emits a
+    :class:`~taggedpd.christy_bosted21.PreliminaryFitWarning`.
+
+    p, n : own fits for sigma_T (and sigma_L).
+    d    : p + n smeared with CD-Bonn light-cone distributions, per nucleus, inelastic only.
+
+    Parameters
+    ----------
+    W2_max, Q2_max : float
+        Domain (default W^2 <= 20, Q^2 <= 30 GeV^2: the range quoted in the routines'
+        comments; the file header quotes W^2, Q^2 < 32).
+    W_min : dict, optional
+        target -> lower W limit (default: pion threshold for p, n; none for d).
+    """
+
+    targets = ("p", "n", "d")
+    preliminary = True
+
+    def __init__(self, W2_max=20.0, Q2_max=30.0, W_min=None, name="Christy 2021 (PRELIMINARY)",
+                 warn=True):
+        if warn:
+            warnings.warn("ChristyBosted2021 is the PRELIMINARY, unpublished F1F221 fit "
+                          "(SIMC F1F2IN21_v1.0.f, M. E. Christy). Check its status with the "
+                          "author before using it in published work.",
+                          cb21.PreliminaryFitWarning, stacklevel=2)
+        self.W2_max, self.Q2_max = W2_max, Q2_max
+        self.W_min = dict({"p": PION_THRESHOLD, "n": PION_THRESHOLD, "d": 0.0}, **(W_min or {}))
+        self.name = name
+
+    def domain(self, W, Q2, target):
+        t = _norm_target(target)
+        W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
+        return (W >= self.W_min[t]) & (W * W <= self.W2_max) & (Q2 >= 0) & (Q2 <= self.Q2_max)
+
+    def F1(self, W, Q2, target):
+        W = np.asarray(W, float)
+        return cb21.f1f2in21(_norm_target(target), Q2, W * W)[0]
+
+    def F1F2(self, W, Q2, target):
+        W = np.asarray(W, float)
+        return cb21.f1f2in21(_norm_target(target), Q2, W * W)
+
+    def sigma_T(self, W, Q2, target):
+        """sigma_T [microbarn]: the fits' own sigma_T for p, n; RESCSD's conversion for d."""
+        t = _norm_target(target)
+        W, Q2 = np.broadcast_arrays(np.asarray(W, float), np.asarray(Q2, float))
+        w2 = W * W
+        if t == "p":
+            return cb21.rescsp(w2, Q2)[0]
+        if t == "n":
+            return cb21.rescsn(w2, Q2)[0]
+        F1 = cb21.rescsd(w2, Q2)[0]
+        m2 = cb21._MAVG**2
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return 0.3894e3 * F1 * (3.14158 * 3.14159) * (1.0 / 137.036) * 8.0 / np.abs(w2 - m2)
+
+
 class BelowThreshold(PhotoabsorptionModel):
     """sigma_T = 0 for a free nucleon below the pion-production threshold (Compton neglected)."""
 
@@ -285,11 +358,13 @@ class Piecewise(PhotoabsorptionModel):
             rng = ""
             if isinstance(m, ChristyBosted):
                 rng = "  " + ", ".join(f"{t}: W in {m.W_range[t]}, Q2 <= {m.Q2_max[t]}" for t in m.targets)
+            elif isinstance(m, ChristyBosted2021):
+                rng = f"  W^2 <= {m.W2_max}, Q2 <= {m.Q2_max}, W >= {m.W_min}  ** PRELIMINARY **"
             lines.append(f"{i}: {m.name} [{', '.join(m.targets)}]{rng}")
         return "\n".join(lines)
 
 
-def default_photoabsorption(binned=False, outside="nan"):
+def default_photoabsorption(binned=False, outside="nan", fit="2009"):
     """Christy-Bosted in its fit range, CB extrapolated down to threshold, zero below threshold.
 
     The middle piece covers PION_THRESHOLD <= W < 1.1 GeV (p, n) and W < 1.2 GeV
@@ -298,7 +373,19 @@ def default_photoabsorption(binned=False, outside="nan"):
     constrained there by MAID2007 pseudo-data), but no proton data below 1.1 GeV
     entered the proton fit. Replace or precede it with a dedicated low-W model
     when available.
+
+    ``fit="2021"`` returns instead [ChristyBosted2021, BelowThreshold]: the
+    **PRELIMINARY** 2021 fit (emits a PreliminaryFitWarning; ``binned`` is ignored).
     """
+    if fit == "2021":
+        warnings.warn("default_photoabsorption(fit='2021') uses the PRELIMINARY, unpublished "
+                      "F1F221 fit (SIMC F1F2IN21_v1.0.f, M. E. Christy). Check its status with "
+                      "the author before using it in published work.",
+                      cb21.PreliminaryFitWarning, stacklevel=2)
+        return Piecewise([ChristyBosted2021(warn=False), BelowThreshold()], outside=outside,
+                         name="Christy 2021 (PRELIMINARY)")
+    if fit != "2009":
+        raise ValueError("fit must be '2009' or '2021'")
     fit = ChristyBosted(binned=binned, name="Christy-Bosted")
     extrap = ChristyBosted(W_range={"p": (PION_THRESHOLD, 1.1), "n": (PION_THRESHOLD, 1.1),
                                     "d": (0.0, 1.2)},

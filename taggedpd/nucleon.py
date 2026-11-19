@@ -593,13 +593,27 @@ class ChristyBostedStructure(NucleonStructure):
     ----------
     binned : bool
         Reproduce the FORTRAN's 1 MeV W binning in the neutron (default False: smooth).
+    version : {"2009", "2021"}
+        "2009" (default): the published fits above. "2021": the **PRELIMINARY**,
+        unpublished F1F221 fit of M. E. Christy (SIMC ``F1F2IN21_v1.0.f``, see
+        :mod:`taggedpd.christy_bosted21`), with its own neutron fit (own R) and range
+        W^2 < 20, Q^2 < 30 GeV^2; emits a PreliminaryFitWarning.
     """
 
     target_mass = True
 
-    def __init__(self, binned=False):
+    def __init__(self, binned=False, version="2009"):
+        if version not in ("2009", "2021"):
+            raise ValueError("version must be '2009' or '2021'")
+        if version == "2021":
+            import warnings
+            from .christy_bosted21 import PreliminaryFitWarning
+            warnings.warn("ChristyBostedStructure(version='2021') uses the PRELIMINARY, "
+                          "unpublished F1F221 fit (SIMC F1F2IN21_v1.0.f, M. E. Christy).",
+                          PreliminaryFitWarning, stacklevel=2)
         self.binned = binned
-        self.name = "Christy-Bosted"
+        self.version = version
+        self.name = "Christy-Bosted" if version == "2009" else "Christy 2021 (PRELIMINARY)"
 
     @staticmethod
     def W2(x, Q2):
@@ -609,19 +623,31 @@ class ChristyBostedStructure(NucleonStructure):
             return MP_CB**2 + np.asarray(Q2, float) * (1.0 / x - 1.0)
 
     def in_range(self, x, Q2, nucleon="n"):
-        W = np.sqrt(np.maximum(self.W2(x, Q2), 0.0))
-        Wmax = 3.1 if _is_proton(nucleon) else 3.0
+        w2 = self.W2(x, Q2)
+        W = np.sqrt(np.maximum(w2, 0.0))
         Q2 = np.asarray(Q2, float)
+        if self.version == "2021":
+            return (W > 1.08) & (w2 < 20.0) & (Q2 >= 0) & (Q2 < 30.0)
+        Wmax = 3.1 if _is_proton(nucleon) else 3.0
         return (W > 1.1) & (W < Wmax) & (Q2 >= 0) & (Q2 < 8.0)
 
     def F1F2R(self, x, Q2, nucleon="n"):
         """(F1, F2, R) from the fit; zero outside 0 < x < 1."""
-        from .christy_bosted import f1f2in09
         x = np.asarray(x, float)
         Q2 = np.asarray(Q2, float)
         ok = (x > 0) & (x < 1)
         w2 = np.where(ok, self.W2(np.where(ok, x, 0.5), Q2), 0.0)
-        F1, F2, R = f1f2in09("p" if _is_proton(nucleon) else "n", Q2, w2, binned=self.binned)
+        tgt = "p" if _is_proton(nucleon) else "n"
+        if self.version == "2021":
+            from .christy_bosted21 import rescsn, rescsp, sf21
+            f1p, _, f2p, f1n, _, f2n = sf21(w2, Q2)
+            F1, F2 = (f1p, f2p) if tgt == "p" else (f1n, f2n)
+            sT, sL = rescsp(w2, Q2) if tgt == "p" else rescsn(w2, Q2)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                R = np.where(sT > 0, sL / sT, 0.0)
+        else:
+            from .christy_bosted import f1f2in09
+            F1, F2, R = f1f2in09(tgt, Q2, w2, binned=self.binned)
         return np.where(ok, F1, 0.0), np.where(ok, F2, 0.0), np.where(ok, R, 0.0)
 
     def F1F2(self, x, Q2, nucleon="n"):

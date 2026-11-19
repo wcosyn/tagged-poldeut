@@ -20,7 +20,7 @@ lhapdf = []   # needs the lhapdf python bindings from your LHAPDF installation
 packages = ["taggedpd"]
 
 [tool.setuptools.package-data]
-taggedpd = ["data/*.grid"]
+taggedpd = ["data/*.grid", "data/f1f2tables/*.dat.gz", "data/f1f2tables/README.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

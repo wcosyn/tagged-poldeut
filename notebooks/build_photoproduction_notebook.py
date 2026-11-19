@@ -39,6 +39,9 @@ This notebook shows the Python port of the Christy–Bosted resonance-region fit
   deuteron and neutron, $0 \le Q^2 < 10$ GeV², $1.2 < W < 3$ GeV (MAID2007 pseudo-data below 1.2 GeV).
 * Code: `F1F209.f` by P. E. Bosted (JLab); the copy ported here is `physics-code/Tools/F1F209_test.f`.
   The port reproduces it to machine precision (see `tests/test_christy_bosted.py`).
+* Section 7 compares with a **PRELIMINARY, unpublished** 2021 fit by M. E. Christy (F1F221 v1.0
+  prerelease 1, from the JLab SIMC package). Do not use it for publications without checking its
+  status with the author.
 
 Conventions: GeV, cross sections in µb, $\sigma_T = 8\pi^2\alpha\,F_1/(W^2-M^2)$ (Hand), deuteron
 **per nucleus** with $W$ computed as for a free proton (a label for the photon energy $\nu$).
@@ -274,19 +277,146 @@ fig.tight_layout(); save(fig, 'pp_piecewise')
 
 # ---------------------------------------------------------------------------
 md(r"""
-## 7. Speed
+## 7. Comparison with the PRELIMINARY 2021 fit (F1F221)
 
-Everything is vectorized. p and n cost ~1 µs per point; the deuteron (Fermi smearing over 20 or 200
-bins) ~30 µs. For event generation at fixed $Q^2$, tabulate once in $W$ and interpolate.
+> **PRELIMINARY — not for publication without checking with the author.** The 2021 fit is the
+> unpublished "F1F221 v1.0 prerelease 1" of M. E. Christy (April 2022), distributed with the JLab
+> Hall C simulation package SIMC as `F1F2IN21_v1.0.f`
+> ([github.com/JeffersonLab/simc_gfortran](https://github.com/JeffersonLab/simc_gfortran)). The
+> deuteron/neutron part is attributed there to M. E. Christy, N. Kalantarians, J. Ethier and
+> W. Melnitchouk, "to be published", and uses inclusive deuteron data, BONuS tagged n/d data and
+> photoproduction at $Q^2=0$. The port is `taggedpd.christy_bosted21`, which agrees with the
+> FORTRAN to rounding; it is opt-in (`default_photoabsorption(fit="2021")`) and emits a
+> `PreliminaryFitWarning`. The 2009 fits remain the default and the citable reference.
+
+Main differences: the neutron has its own fit, with its own $\sigma_T$ and $\sigma_L$, instead of
+$2\bar F_1 - F_{1p}$; the deuteron is p + n smeared with CD-Bonn light-cone distributions, with no
+MEC term; and the range extends to $W^2<20$, $Q^2<30$ GeV².
+""")
+
+code(r"""
+import warnings
+from taggedpd import christy_bosted21 as cb21
+from taggedpd.christy_bosted21 import PreliminaryFitWarning
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', PreliminaryFitWarning)   # we know: preliminary
+    m21 = default_photoabsorption(fit='2021')
+m09 = default_photoabsorption()
+print(m21.describe())
+
+W = np.linspace(1.0, 3.2, 1200)
+fig, axs = plt.subplots(2, 3, figsize=(15, 7), sharex=True, gridspec_kw={'height_ratios': [3, 1.3]})
+for k, (tgt, title) in enumerate((('p', r'$\gamma p$'), ('n', r'$\gamma n$'), ('d', r'$\gamma d$ (per nucleus)'))):
+    s09 = photoproduction(W, tgt, model=m09)
+    s21 = photoproduction(W, tgt, model=m21)
+    axs[0, k].plot(W, s09, label='2009 (PRC 81 055213 / PRC 77 065206)')
+    axs[0, k].plot(W, s21, '--', label='2021 F1F221 (PRELIMINARY)')
+    axs[0, k].set_title(title); axs[0, k].legend(fontsize=8)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        axs[1, k].plot(W, s21 / s09, 'k')
+    axs[1, k].axhline(1, c='0.6', lw=0.8); axs[1, k].set_ylim(0.5, 1.5)
+    axs[1, k].set_xlabel('$W$ [GeV]')
+axs[0, 0].set_ylabel(r'$\sigma_T$ [$\mu$b], $Q^2=0$'); axs[1, 0].set_ylabel('2021 / 2009')
+fig.suptitle('Real-photon cross sections: 2009 vs 2021 (PRELIMINARY)', y=1.0)
+fig.tight_layout(); save(fig, 'pp_cmp_2009_2021_sigmaT')
+""")
+
+code(r"""
+# neutron/proton ratio and deuteron vs free p + n, both fits
+W = np.linspace(1.08, 3.0, 1000)
+fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+for m, lab, ls in ((m09, '2009', '-'), (m21, '2021 (PRELIMINARY)', '--')):
+    sp, sn, sd = (photoproduction(W, t, model=m) for t in 'pnd')
+    ax[0].plot(W, sn / sp, ls, label=lab)
+    ax[1].plot(W, sd / (sp + sn), ls, label=lab)
+ax[0].axhline(1, c='0.6', lw=0.8); ax[0].set_ylim(0.4, 2.0)
+ax[0].set_xlabel('$W$ [GeV]'); ax[0].set_ylabel(r'$\sigma_T(\gamma n)/\sigma_T(\gamma p)$'); ax[0].legend()
+ax[1].axhline(1, c='0.6', lw=0.8); ax[1].set_ylim(0.5, 2.0)
+ax[1].set_xlabel('$W$ [GeV]'); ax[1].set_ylabel(r'$\sigma_T(\gamma d)/[\sigma_T(\gamma p)+\sigma_T(\gamma n)]$'); ax[1].legend()
+fig.tight_layout(); save(fig, 'pp_cmp_ratios')
+Wd = np.array([1.21, 1.232]); print('sigma_n/sigma_p at the Delta: 2009', np.round(photoproduction(Wd, 'n') / photoproduction(Wd, 'p'), 3),
+                                  ' 2021', np.round(photoproduction(Wd, 'n', model=m21) / photoproduction(Wd, 'p', model=m21), 3))
+""")
+
+code(r"""
+# F1 at finite Q^2, both fits
+W = np.linspace(1.08, 3.0, 600)
+fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
+for ax, tgt, title, fac in zip(axs, 'pnd', ('proton', 'neutron', 'deuteron / 2'), (1, 1, 0.5)):
+    for i, Q2 in enumerate((0.1, 0.5, 2.0, 5.0)):
+        ax.plot(W, fac * photoproduction(W, tgt, 'F1', Q2=Q2, model=m09), c=f'C{i}', label=f'$Q^2$={Q2:g} 2009')
+        ax.plot(W, fac * photoproduction(W, tgt, 'F1', Q2=Q2, model=m21), '--', c=f'C{i}', label=f'$Q^2$={Q2:g} 2021 (prelim.)')
+    ax.set_title(title); ax.set_xlabel('$W$ [GeV]')
+axs[0].set_ylabel('$F_1$'); axs[0].legend(fontsize=7, ncol=2)
+fig.tight_layout(); save(fig, 'pp_cmp_F1_Q2')
+""")
+
+md(r"""
+### Checks of the 2021 port
+
+* Regression: all outputs ($\sigma_{T,L}$ of p and n, and $F_1$, $F_2$ of p, n, d) agree with the FORTRAN to
+  rounding (`tests/test_christy_bosted21.py`).
+* The smearing functions are normalized: $\int f_{11}\,dy = \int f_{22}\,dy = 1$ at $\gamma = 1$.
+* The original code has quirks that are reproduced on purpose and documented in the module. The most
+  visible one: below $Q^2=0.05$ GeV² the deuteron uses a separate smearing routine whose integrand is
+  $F_1(z)$ instead of $F_1(z)/y$, which makes the deuteron $F_1$ **discontinuous at $Q^2=0.05$** (left
+  plot). Also, `GETFY` reads the table one $y$ bin too high.
+* The 2021 range extends to $W^2 < 20$ GeV² (right plot; the 2009 fits stop at $W\approx3$ GeV).
+""")
+
+code(r"""
+W = np.array([1.08, 1.12, 1.232, 1.5, 2.0])
+Q2 = np.linspace(0.02, 0.08, 241)
+fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+for Wv in W:
+    F1 = cb21.f1f2in21('d', Q2, np.full_like(Q2, Wv**2))[0]
+    ax[0].plot(Q2, F1 / F1[np.argmin(abs(Q2 - 0.06))], label=f'W = {Wv}')
+ax[0].axvline(0.05, c='0.6', ls=':')
+ax[0].set_xlabel('$Q^2$ [GeV$^2$]'); ax[0].set_ylabel(r'$F_1^d(Q^2)/F_1^d(0.06)$  (2021, PRELIMINARY)'); ax[0].legend(fontsize=8)
+Wl = np.linspace(1.0, 4.5, 1500)
+for tgt in 'pn':
+    ax[1].plot(Wl, photoproduction(Wl, tgt, model=m21), label=f'{tgt}, 2021 (PRELIMINARY)')
+    ax[1].plot(Wl, photoproduction(Wl, tgt, model=m09), ':', label=f'{tgt}, 2009')
+ax[1].set_xlabel('$W$ [GeV]'); ax[1].set_ylabel(r'$\sigma_T$ [$\mu$b]'); ax[1].set_yscale('log'); ax[1].legend(fontsize=8)
+fig.tight_layout(); save(fig, 'pp_2021_checks')
+""")
+
+md(r"""
+**What the comparison shows** (properties of the fits, reproduced faithfully by the ports):
+
+* **Proton:** the two fits agree to within ~5% across the resonance region; they differ only near
+  threshold, where the cross section is small.
+* **Neutron:** differences of ±20% in the resonance region. At the $\Delta$ the 2021 fit gives
+  $\sigma_n/\sigma_p\approx0.95$ (2009: 1.15). Near threshold the 2021 neutron is about twice the
+  2009 one. At the $\eta$ threshold ($W\approx1.49$ GeV) the 2021 neutron has a cusp: its
+  non-resonant $\eta$ term $(1-x'_\eta)^{t_1}$ has $t_1\approx0.03$ at $Q^2=0$, so it switches on
+  almost like a step.
+* **Deuteron:** the 2021 deuteron has no strength below the free-nucleon pion threshold (no MEC term
+  in the inelastic part), whereas the 2009 deuteron gets ~150–300 µb there from its MEC term.
+* **2021 deuteron, numerical noise:** besides the jump at $Q^2=0.05$, $F_1^d$ shows 1–5% steps as a
+  function of $Q^2$, largest near threshold. They come from the fixed Simpson grid (48–76 nodes in
+  $y$) crossing the 0.002 bins of the smearing table. This matters for MC weights at the few-% level
+  near threshold.
+""")
+
+# ---------------------------------------------------------------------------
+md(r"""
+## 8. Speed
+
+Everything is vectorized. With the 2009 fits, p and n cost ~1 µs per point and the deuteron (Fermi
+smearing over 20 or 200 bins) ~30 µs. With the 2021 fit, the deuteron integrates over 48–76 $y$ nodes,
+each evaluating both nucleon fits. For event generation at fixed $Q^2$, tabulate once in $W$ and
+interpolate.
 """)
 
 code(r"""
 import time
 rng = np.random.default_rng(0)
-Wr = rng.uniform(1.1, 3.0, 200_000)
-for tgt in 'pnd':
-    t0 = time.time(); photoproduction(Wr, tgt); dt = time.time() - t0
-    print(f'{tgt}: {dt / Wr.size * 1e6:.2f} us/point')
+Wr = rng.uniform(1.1, 3.0, 50_000)
+for lab, m in (('2009', m09), ('2021 (prelim.)', m21)):
+    for tgt in 'pnd':
+        t0 = time.time(); photoproduction(Wr, tgt, model=m); dt = time.time() - t0
+        print(f'{lab:15s} {tgt}: {dt / Wr.size * 1e6:.2f} us/point')
 """)
 
 

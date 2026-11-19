@@ -173,6 +173,44 @@ Implementation notes:
   regression. `photoproduction` and `ChristyBostedStructure` evaluate the shapes smoothly
   by default.
 
+### PRELIMINARY: the 2021 fit (F1F221)
+
+> **Preliminary and unpublished.** Do not use this fit in published work without checking
+> its status with the author, M. E. Christy. The 2009 fits above remain the default and
+> the citable reference.
+
+`taggedpd.christy_bosted21` ports `F1F2IN21_v1.0.f`, "F1F221 v1.0 prerelease 1"
+(M. E. Christy, April 2022), as distributed with the JLab Hall C simulation package SIMC:
+https://github.com/JeffersonLab/simc_gfortran. According to its header, the
+deuteron/neutron fit is by M. E. Christy, N. Kalantarians, J. Ethier and W. Melnitchouk
+("to be published"). It is based on inclusive deuteron data and BONuS tagged n/d data,
+and includes photoproduction at Q² = 0.
+
+Differences from the 2009 fits:
+* the neutron has its own fit, with its own σ_T and σ_L;
+* the deuteron is p + n smeared with CD-Bonn light-cone distributions, with no MEC term;
+* the range extends to W² < 20 and Q² < 30 GeV².
+
+The smearing tables in `taggedpd/data/f1f2tables/` come from the same SIMC repository.
+That repository has no license file, so redistribution has not been cleared.
+
+```python
+from taggedpd import default_photoabsorption, photoproduction, ChristyBostedStructure
+m21 = default_photoabsorption(fit="2021")         # emits PreliminaryFitWarning
+photoproduction(W, "n", model=m21)
+ChristyBostedStructure(version="2021")            # resonance-region F1, F2 (warns too)
+```
+
+The port agrees with the Fortran to rounding. Quirks of the original are reproduced on
+purpose and documented in the module:
+* F2 is 0/0 at Q² = 0 in the Fortran; the port returns 0;
+* `GETFY` reads the smearing table one y bin too high;
+* the deuteron F1 jumps at Q² = 0.05 GeV² (separate low-Q² smearing routine) by ~1% above
+  the Δ and more near threshold;
+* the deuteron F1 has 1–5% numerical steps as a function of Q² near threshold.
+
+The comparison with the 2009 fits is in `notebooks/photoproduction.ipynb`, section 7.
+
 ## Validation (see `tests/` and `notebooks/paper_figures.ipynb`)
 
 * LF distributions vs. C++ `getLFdistributions_new`, all 9 functions on the full
