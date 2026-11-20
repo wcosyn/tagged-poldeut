@@ -5,7 +5,7 @@ and what was found along the way. For usage and conventions see the [README](../
 
 ## Origin and scope
 
-`taggedpd` is a standalone Python port of the parts of the C++ `physics-code` repository
+`taggedpd` is a standalone Python port of the parts of the C++ `nucqcd` repository (formerly `physics-code`)
 needed for tagged DIS on the polarized deuteron, written to serve as the physics engine
 of an MC generator. The requirements were:
 
@@ -24,16 +24,16 @@ of an MC generator. The requirements were:
 | Question | Decision | Rationale |
 |---|---|---|
 | Repository | `tagged-poldeut`, package `taggedpd`, private on GitHub | — |
-| g1 input | GRSV2000 LO (the grid already in `physics-code/share/grsv`), behind a pluggable interface, plus an LHAPDF backend | It is what the C++, and therefore the figures, actually use. The paper text says DSSV09, a different fit. |
+| g1 input | GRSV2000 LO (the grid already in `nucqcd/share/grsv`), behind a pluggable interface, plus an LHAPDF backend | It is what the C++, and therefore the figures, actually use. The paper text says DSSV09, a different fit. |
 | R = σ_L/σ_T | constant R = 0.18 by default; E143 `r1998` available | matches Sec. VI A of the paper |
 | F1 target-mass factor | (1+γ²) included by default (`target_mass=True`) | the C++ code that produced the figures includes it; `False` gives the strict DIS limit |
-| WW g1+g2 | accurate tabulated integral by default; `ww="cpp"` reproduces the old C++ Riemann sum | the old C++ sum was inaccurate (issue 1 below, now fixed in physics-code) |
+| WW g1+g2 | accurate tabulated integral by default; `ww="cpp"` reproduces the old C++ Riemann sum | the old C++ sum was inaccurate (issue 1 below, now fixed in nucqcd) |
 | Master formula | taken from Part I Eqs. (4.36)–(4.39) | the paper only quotes it |
 | Wave functions | used as published, not rescaled to norm 1 | the norms are 1 to within 2×10⁻⁴; this keeps agreement with the C++ |
 
-## Mapping from `physics-code`
+## Mapping from `nucqcd`
 
-| `physics-code` | `taggedpd` | Notes |
+| `nucqcd` | `taggedpd` | Notes |
 |---|---|---|
 | `Tools/TDeuteron.cpp`, `TYukawaPWF.cpp` | `wavefunctions.py` | Boundary conditions are solved as in the C++ constructor. W is evaluated analytically; the C++ interpolates on a 0–1200 MeV, 1 MeV grid. |
 | `DIS/Poldeut.cpp::getLFdistributions_new` | `densities.py` | Paper equations coded directly. The C++ C0L/D0T forms are numerically identical. The C++ tensor outputs carry extra factors √(3/2), √2, 1/√2, and its internal names `P_STST_par`/`perp` are swapped relative to the header (callers get the right values). |
@@ -117,7 +117,7 @@ not been regenerated yet.
     carries γ_n; it is a judgement call, so check it against the intent of that study;
   - `10E07` → `1E07` in `tagdeut_unpolcross_log.py`, `tagdeut_unpolcross_ndep.py`,
     `tagdeut_obs.py` and `tagdeut_obs_v2.py`.
-- **C++** (physics-code, branch `fix-ww-integral`, commit `e9d1e6a`, not yet merged or
+- **C++** (nucqcd, branch `fix-ww-integral`, commit `e9d1e6a`, not yet merged or
   pushed): Gauss–Legendre WW integral in both `NucleonStructure` and the older
   `NuclStructure` (used by `Poldeut` and `DeuteronStructure`); new table generator
   `progs/poldeut/neutron_sf`.
@@ -134,7 +134,7 @@ Still open:
 - matplotlib `usetex` needs the `cm-super` fonts, which are missing on the upgraded system
   (`sudo apt install cm-super`); without them some figures fail to save
   (e.g. `ALT_nodepol_v2.pdf`).
-- physics-code was reinstalled into `lib/` and `bin/` after the OS upgrade (the old
+- nucqcd was reinstalled into `lib/` and `bin/` after the OS upgrade (the old
   install linked GSL 27, which is gone). `GPD_Partons` and `progs/GPD` do not build:
   the installed PARTONS headers need SFML, and `diDVCS_gen_gridonly` lacks the ROOT
   include path. `lib/libGPD.so` and `bin/conv_T_test` are therefore still the old,
@@ -152,7 +152,7 @@ with `photoproduction` kept as an alias.
 
 | file | content |
 |---|---|
-| `taggedpd/christy_bosted.py` | Port of `F1F209.f` (P. E. Bosted, M. E. Christy), in physics-code as `Tools/F1F209_test.f`: `RESMOD507`, `CHRISTY507`, `RESMODD`, `MEC`, `RESD`, `PIND`, and the A ≤ 2 branches of `F1F2IN09`. |
+| `taggedpd/christy_bosted.py` | Port of `F1F209.f` (P. E. Bosted, M. E. Christy), in nucqcd as `Tools/F1F209_test.f`: `RESMOD507`, `CHRISTY507`, `RESMODD`, `MEC`, `RESD`, `PIND`, and the A ≤ 2 branches of `F1F2IN09`. |
 | `taggedpd/inclusive.py` | `inclusive_sf(W, target, quantity, Q2)` (alias `photoproduction`), the `InclusiveModel` interface (alias `PhotoabsorptionModel`), `ChristyBosted`, `BelowThreshold`, `Blend`, `Piecewise`, `default_photoabsorption()`. |
 | `taggedpd/inclusive.py` (re-exported from `nucleon`) | `ChristyBostedStructure`: p and n F1, F2 in (x, Q²) as a `NucleonStructure` provider. |
 | `tests/test_christy_bosted.py` | Regression against the Fortran, the Q² → 0 limit, the neutron construction, and the interface. |
@@ -201,7 +201,7 @@ abstracts.
    there.
 3. **σ(γn)/σ(γp) ≈ 1.15 at the Δ peak.** The Δ is isovector, so this most likely comes
    from the unfolding (smearing and MEC) used to extract the neutron.
-4. The physics-code C++ (`NucleonStructure::getF_CB`, `NuclStructure`) calls `F1F2IN09`
+4. The nucqcd C++ (`NucleonStructure::getF_CB`, `NuclStructure`) calls `F1F2IN09`
    in (x, Q²). Its W² = M² + Q²(1/x − 1) equals M² at Q² = 0, below the 1.155 GeV² cut, so
    real photons cannot be reached through that interface. The proton is passed as Z = 1,
    A = 0; this works only because only `int(A) < 2` is tested.
@@ -325,7 +325,7 @@ Christy–Bosted, and F_T/F_L were defined in two places.
   it reproduces `ChristyBostedStructure`.
 
 **Deliberate change.** `ChristyBostedStructure` now converts x → W with the physical
-neutron mass for the neutron, like physics-code's `NucleonStructure::getF_CB` and the
+neutron mass for the neutron, like nucqcd's `NucleonStructure::getF_CB` and the
 generic adapter. It previously used the fit's proton mass for both nucleons. The neutron
 changes by up to 1–2% near threshold (large x); the proton by < 10⁻⁵.
 

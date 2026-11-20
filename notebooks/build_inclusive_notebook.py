@@ -39,7 +39,7 @@ The same model objects feed the tagged-DIS code through `AsNucleonStructure` (se
 * P. E. Bosted and M. E. Christy, *Empirical fit to inelastic electron-deuteron and electron-neutron
   resonance region transverse cross sections*, Phys. Rev. C **77**, 065206 (2008), arXiv:0711.0159 —
   deuteron and neutron, $0 \le Q^2 < 10$ GeV², $1.2 < W < 3$ GeV (MAID2007 pseudo-data below 1.2 GeV).
-* Code: `F1F209.f` by P. E. Bosted (JLab); the copy ported here is `physics-code/Tools/F1F209_test.f`.
+* Code: `F1F209.f` by P. E. Bosted (JLab); the copy ported here is `nucqcd/Tools/F1F209_test.f`.
   The port reproduces it to machine precision (see `tests/test_christy_bosted.py`).
 * Section 7 compares with a **PRELIMINARY, unpublished** 2021 fit by M. E. Christy (F1F221 v1.0
   prerelease 1, from the JLab SIMC package). Do not use it for publications without checking its
@@ -248,7 +248,7 @@ md(r"""
 with `binned=True` (used in the regression tests); `inclusive_sf` uses the smooth
 evaluation (`binned=False`) by default. The binning produces a staircase in $\bar F_1$ and hence in the
 neutron: ~1% above $W=1.2$ GeV and up to tens of percent within ~25 MeV of the pion threshold, where $F_1$
-itself is small. The physics-code C++ (which links the FORTRAN) has the staircase.
+itself is small. The nucqcd C++ (which links the FORTRAN) has the staircase.
 """)
 
 code(r"""

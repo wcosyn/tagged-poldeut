@@ -1,6 +1,6 @@
 r"""Nonrelativistic deuteron radial wave functions (Yukawa parametrizations).
 
-This is a port of ``TYukawaPWF`` / ``TDeuteron::Wavefunction`` from physics-code.
+This is a port of ``TYukawaPWF`` / ``TDeuteron::Wavefunction`` from nucqcd.
 The radial wave functions are parametrized as a discrete sum of Yukawa terms
 [Lacombe et al., PLB 101 (1981) 139]:
 
@@ -59,7 +59,7 @@ __all__ = ["DeuteronWavefunction", "available_wavefunctions"]
 
 
 # ---------------------------------------------------------------------------
-# Parameter tables, copied verbatim from physics-code Tools/TDeuteron.cpp.
+# Parameter tables, copied verbatim from nucqcd Tools/TDeuteron.cpp.
 # C, D in fm^{-1/2}; masses in fm^{-1}.
 # ---------------------------------------------------------------------------
 

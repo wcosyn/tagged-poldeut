@@ -297,7 +297,7 @@ class ChristyBosted(InclusiveModel):
         target -> maximal Q^2. Default p: 8, n: 8, d: 10 GeV^2.
     binned : bool
         False (default): evaluate the resonance shapes of RESMODD at the exact W
-        (smooth). True: 1 MeV W bins as in the FORTRAN (and the physics-code C++),
+        (smooth). True: 1 MeV W bins as in the FORTRAN (and the nucqcd C++),
         which produces a staircase in n and d: steps ~1% above W = 1.2 GeV and up to
         tens of percent within ~25 MeV of the pion threshold.
     name : str
@@ -784,7 +784,7 @@ class ChristyBostedStructure(AsNucleonStructure):
     """Unpolarized F1, F2 (and F_T, F_L) of p and n from a single Christy-Bosted fit, in (x, Q^2).
 
     ``AsNucleonStructure(ChristyBosted(...))``, i.e. W^2 = M^2 + Q^2 (1/x - 1) with the
-    physical proton/neutron mass (as physics-code ``NucleonStructure::getF_CB`` and the
+    physical proton/neutron mass (as nucqcd ``NucleonStructure::getF_CB`` and the
     other providers; until 2026-11-19 this class used the fit's proton mass for both,
     which changes the neutron by up to 1-2% near threshold, i.e. at large x, and the
     proton by < 1e-5). Evaluated everywhere
