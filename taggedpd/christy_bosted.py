@@ -1,7 +1,7 @@
 r"""Christy-Bosted resonance-region fits for the proton, neutron and deuteron.
 
 Port of the FORTRAN package ``F1F209.f`` by P. E. Bosted and M. E. Christy
-(version of 2009, as shipped in physics-code ``Tools/F1F209_test.f``). Please
+(version of 2009, as shipped in nucqcd ``Tools/F1F209_test.f``). Please
 cite the original work when using this module:
 
 * **Proton** -- M. E. Christy and P. E. Bosted, *Empirical fit to precision
@@ -71,7 +71,7 @@ The FORTRAN assigns single-precision literals (e.g. ``mp = 0.9382727``, all
 ``data`` tables) to double variables. This port uses the literal values in double
 precision. It agrees with the FORTRAN compiled with double-precision literals
 (``-fdefault-real-8 -fdefault-double-8``) to ~1e-12, and with the FORTRAN as
-shipped (which physics-code links) to ~1e-7 typically, 7e-5 at worst.
+shipped (which nucqcd links) to ~1e-7 typically, 7e-5 at worst.
 ``RESMODD`` evaluates its Breit-Wigner shapes from a table in 1 MeV bins of W;
 :func:`resmodd` does the same by default (``binned=True``) so that the regression
 tests are exact; ``binned=False`` evaluates them at the actual W (differences

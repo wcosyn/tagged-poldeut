@@ -1,7 +1,7 @@
 """Christy-Bosted port (taggedpd.christy_bosted) and the photoproduction interface.
 
 Reference tables: tests/reference/christy_bosted_{dp,sp}.txt.gz, produced by
-tests/reference/fortran/cb_reference.f linked against physics-code Tools/F1F209_test.f
+tests/reference/fortran/cb_reference.f linked against nucqcd Tools/F1F209_test.f
 ("sp": as shipped; "dp": compiled with double-precision literals), see the README there.
 Columns: W Q2 | christy507 F1 R sigT sigL | resmodd F1avg | f1f2in09 p: F1 F2 R | n: F1 F2 R | d: F1 F2 R
 """
@@ -51,7 +51,7 @@ def test_regression_double_precision_fortran(ref_dp):
 
 
 def test_regression_fortran_as_shipped(ref_sp):
-    """Port vs the FORTRAN as linked by physics-code (single-precision literals)."""
+    """Port vs the FORTRAN as linked by nucqcd (single-precision literals)."""
     py = _python_table(ref_sp[:, 0], ref_sp[:, 1])
     ref = ref_sp[:, 2:]
     pn = slice(0, 11)          # proton, average, p and n columns

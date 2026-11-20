@@ -231,7 +231,7 @@ Implementation notes:
   regression. `inclusive_sf` and `ChristyBostedStructure` evaluate the shapes smoothly
   by default.
 * `AsNucleonStructure` (and therefore `ChristyBostedStructure`) converts x → W with the
-  physical proton or neutron mass, as physics-code's `NucleonStructure::getF_CB` does.
+  physical proton or neutron mass, as nucqcd's `NucleonStructure::getF_CB` does.
   Until 2026-11-19 `ChristyBostedStructure` used the fit's proton mass for the neutron as
   well; the switch changed the neutron by up to 1–2% near threshold (large x).
 

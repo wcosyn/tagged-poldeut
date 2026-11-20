@@ -2,12 +2,12 @@
 
 `../christy_bosted_{sp,dp}.txt.gz` are produced by `cb_reference.f`, linked against the
 FORTRAN `F1F209.f` of P. E. Bosted and M. E. Christy (the copy in
-`physics-code/Tools/F1F209_test.f`). The `sp` table uses the file as is; this is what
-physics-code links. In the `dp` table, the single-precision literals of the original are
+`nucqcd/Tools/F1F209_test.f`). The `sp` table uses the file as is; this is what
+nucqcd links. In the `dp` table, the single-precision literals of the original are
 promoted to double, which allows a machine-precision comparison with the port.
 
 ```bash
-F=~/Git/physics-code/Tools/F1F209_test.f
+F=~/Git/nucqcd/Tools/F1F209_test.f
 # as shipped (single-precision literals)
 gfortran -O0 -std=legacy -w cb_reference.f $F -o cbref_sp && ./cbref_sp | gzip > ../christy_bosted_sp.txt.gz
 # double-precision literals. -fdefault-double-8 keeps 1.d0 at 8 bytes, and FITEMC's REAL*4

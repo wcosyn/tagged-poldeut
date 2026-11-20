@@ -152,7 +152,7 @@ with `photoproduction` kept as an alias.
 
 | file | content |
 |---|---|
-| `taggedpd/christy_bosted.py` | Port of `F1F209.f` (P. E. Bosted, M. E. Christy), in physics-code as `Tools/F1F209_test.f`: `RESMOD507`, `CHRISTY507`, `RESMODD`, `MEC`, `RESD`, `PIND`, and the A ≤ 2 branches of `F1F2IN09`. |
+| `taggedpd/christy_bosted.py` | Port of `F1F209.f` (P. E. Bosted, M. E. Christy), in nucqcd as `Tools/F1F209_test.f`: `RESMOD507`, `CHRISTY507`, `RESMODD`, `MEC`, `RESD`, `PIND`, and the A ≤ 2 branches of `F1F2IN09`. |
 | `taggedpd/inclusive.py` | `inclusive_sf(W, target, quantity, Q2)` (alias `photoproduction`), the `InclusiveModel` interface (alias `PhotoabsorptionModel`), `ChristyBosted`, `BelowThreshold`, `Blend`, `Piecewise`, `default_photoabsorption()`. |
 | `taggedpd/inclusive.py` (re-exported from `nucleon`) | `ChristyBostedStructure`: p and n F1, F2 in (x, Q²) as a `NucleonStructure` provider. |
 | `tests/test_christy_bosted.py` | Regression against the Fortran, the Q² → 0 limit, the neutron construction, and the interface. |
@@ -201,7 +201,7 @@ abstracts.
    there.
 3. **σ(γn)/σ(γp) ≈ 1.15 at the Δ peak.** The Δ is isovector, so this most likely comes
    from the unfolding (smearing and MEC) used to extract the neutron.
-4. The physics-code C++ (`NucleonStructure::getF_CB`, `NuclStructure`) calls `F1F2IN09`
+4. The nucqcd C++ (`NucleonStructure::getF_CB`, `NuclStructure`) calls `F1F2IN09`
    in (x, Q²). Its W² = M² + Q²(1/x − 1) equals M² at Q² = 0, below the 1.155 GeV² cut, so
    real photons cannot be reached through that interface. The proton is passed as Z = 1,
    A = 0; this works only because only `int(A) < 2` is tested.
@@ -325,7 +325,7 @@ Christy–Bosted, and F_T/F_L were defined in two places.
   it reproduces `ChristyBostedStructure`.
 
 **Deliberate change.** `ChristyBostedStructure` now converts x → W with the physical
-neutron mass for the neutron, like physics-code's `NucleonStructure::getF_CB` and the
+neutron mass for the neutron, like nucqcd's `NucleonStructure::getF_CB` and the
 generic adapter. It previously used the fit's proton mass for both nucleons. The neutron
 changes by up to 1–2% near threshold (large x); the proton by < 10⁻⁵.
 
