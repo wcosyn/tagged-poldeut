@@ -3,20 +3,20 @@
 Conventions
 -----------
 * All energies, momenta and masses are in **GeV** (the C++ code in
-  ``physics-code`` works in MeV; values below are converted).
+  ``nucqcd`` works in MeV; values below are converted).
 * The deuteron/nucleon kinematics uses the *average* nucleon mass
   m = (m_n + m_p)/2, as in the paper (Sec. II A) and in the C++ ``MASSn``.
 """
 
 import math
 
-#: proton mass [GeV] (same value as physics-code ``MASSP``)
+#: proton mass [GeV] (same value as nucqcd ``MASSP``)
 M_PROTON = 0.93827231
-#: neutron mass [GeV] (same value as physics-code ``MASSN``)
+#: neutron mass [GeV] (same value as nucqcd ``MASSN``)
 M_NEUTRON = 0.93956536
 #: average nucleon mass m = (m_n + m_p)/2 [GeV]; used in the LF kinematics
 M_NUCLEON = 0.5 * (M_PROTON + M_NEUTRON)
-#: deuteron mass [GeV] (same value as physics-code ``MASSD``)
+#: deuteron mass [GeV] (same value as nucqcd ``MASSD``)
 M_DEUTERON = 1.8756
 
 #: hbar*c [GeV fm]  (TWavefunctionImplementation::fgHbarc = 197.326968 MeV fm)
@@ -24,7 +24,7 @@ HBARC = 0.197326968
 #: (hbar c)^2 in nb GeV^2 : 1 GeV^-2 = 0.3893794 mb = 3.893794e5 nb
 GEV2_TO_NB = 3.893794e5
 
-#: fine-structure constant (physics-code ``ALPHA``)
+#: fine-structure constant (nucqcd ``ALPHA``)
 ALPHA_EM = 0.00729735253
 
 PI = math.pi
