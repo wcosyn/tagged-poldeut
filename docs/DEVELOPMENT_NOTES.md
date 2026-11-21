@@ -141,7 +141,7 @@ per-item logs there record every change. The published PRC versions still contai
     carries γ_n; it is a judgement call, so check it against the intent of that study;
   - `10E07` → `1E07` in `tagdeut_unpolcross_log.py`, `tagdeut_unpolcross_ndep.py`,
     `tagdeut_obs.py` and `tagdeut_obs_v2.py`.
-- **C++** (nucqcd, branch `fix-ww-integral`, commit `e9d1e6a`, not yet merged or
+- **C++** (nucqcd, branch `fix-ww-integral`, commit `e9d1e6a`, merged and
   pushed): Gauss–Legendre WW integral in both `NucleonStructure` and the older
   `NuclStructure` (used by `Poldeut` and `DeuteronStructure`); new table generator
   `progs/poldeut/neutron_sf`.
