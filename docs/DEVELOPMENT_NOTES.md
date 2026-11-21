@@ -357,7 +357,7 @@ In the scaling limit F2^D ≈ F2p + F2n and F1^D ≈ 2(F1p + F1n): the F1-type d
 functions are about 4× the nucleon average, F2 about 2×.
 
 **Docs.** README, the `inclusive` module docstring and both notebooks got an explicit
-variables table (ν, the W label, x_N / x_D / arXiv:2603.23700 x with their ranges), Hand's flux and
+variables table (ν, W as a way of specifying ν for d, x_N / x_D / arXiv:2603.23700 x with their ranges), Hand's flux and
 Γ written in invariants, the real-photon limit, the K vs K_D discussion, and an explanation
 of the dip-region (MEC) term. Formulas in the README are now LaTeX.
 

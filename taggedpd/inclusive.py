@@ -86,7 +86,8 @@ GeV, cross sections in **microbarn** (alpha = 1/137.036, 2021 fit 1/137.03599;
 1 GeV^-2 = 389.4 microbarn). The deuteron result is the *inelastic* (pion-production)
 part only: photodisintegration gamma d -> p n is not included.
 
-Targets and kinematic variables. The target is at rest in the lab: a free nucleon for
+Targets and kinematic variables. All variables are Lorentz invariants, described in the
+target rest frame but computable in any frame (fixed target or collider). Target: a free nucleon for
 "p", "n"; the deuteron for "d", whose structure functions are the deuteron's own (arXiv:2603.23700),
 not divided by 2 ("per nucleus"). Bound nucleons move (Fermi motion) and each has its
 own p_N.q and gamma*N mass; the deuteron fits integrate over that internally. None of
@@ -99,12 +100,19 @@ M           the fit's nucleon mass (:meth:`InclusiveModel.kin_mass`): 2009
             0.93828 (flux 0.9382727); 2021 0.938272 (p, n), average (d)
 M_T         target mass: M for p, n; M_D (:data:`~taggedpd.constants.M_DEUTERON`)
             for d (:meth:`InclusiveModel.sf_mass`)
-nu          lab photon energy = p_T.q/M_T (p_T: free nucleon or deuteron at
-            rest); nu = (W^2 - M^2 + Q^2)/2M
-W           input. p, n: gamma*N invariant mass. d: the gamma*N mass a *free
-            nucleon at rest* would have at this nu, W^2 = M^2 + 2 M nu - Q^2,
-            only a label for nu (as in the fits); NOT the gamma*d mass
-            W_D^2 = M_D^2 + 2 M_D nu - Q^2, nor that of a bound nucleon.
+nu          photon energy in the target rest frame, the same quantity for
+            every target: p_T.q/M_T is its invariant form for a nucleon or
+            deuteron target, valid in any frame. In a collider it is NOT the
+            photon energy in the collider frame; compute p_D.q/M_D from the
+            four-vectors. nu = (W^2 - M^2 + Q^2)/2M, so at given (W, Q^2)
+            all targets have the same nu (and the same K below)
+W           input, always converted to nu by W^2 = M^2 + 2 M nu - Q^2. p, n:
+            the gamma*N invariant mass. d: not the mass of any physical
+            system, just another way of specifying nu: W^2 = (p_N + q)^2 for
+            a free nucleon moving with the deuteron, p_N = (M/M_D) p_D (at
+            rest in the deuteron rest frame), as in the fits. NOT the
+            gamma*d mass W_D^2 = M_D^2 + 2 M_D nu - Q^2, nor that of a bound
+            nucleon.
             :func:`W_from_nu` / :func:`nu_from_W` convert.
 x_N         Q^2/(2 M nu), free-nucleon Bjorken variable, used for p, n       (0, 1]
 x_D         Q^2/(2 M_D nu) = Q^2/(2 p_D.q), deuteron Bjorken variable,       (0, 1]
@@ -129,7 +137,7 @@ electron cross section as a flux Gamma times sigma_T + eps sigma_L. In invariant
     Gamma = alpha M_T K y^2/(pi Q^4 (1 - eps)),
     sigma_{T,L} = 2 pi^2 alpha F_{T,L}/(M_T K),
     y = p_T.q/p_T.l,  eps = (1 - y - gamma^2 y^2/4)/(1 - y + y^2/2 + gamma^2 y^2/4),
-    K = (W^2 - M^2)/2M = nu - Q^2/2M  (W^2 = (p+q)^2 for a free nucleon; the label for d).
+    K = (W^2 - M^2)/2M = nu - Q^2/2M  (W^2 = (p+q)^2 for a free nucleon; for d, W just specifies nu).
 
 K cancels in Gamma sigma: only F_T, F_L (W1, W2) are physical. For d this is arXiv:2603.23700's
 d sigma (dx/2 = dx_D). For real photons (Q^2 -> 0): K/nu -> 1, gamma^2 -> 0,
@@ -206,7 +214,7 @@ PION_THRESHOLD = cb.MP_CB + 0.135
 
 
 def W_from_nu(nu, Q2=0.0, mass=_M):
-    """W for photon lab energy ``nu`` on a nucleon of ``mass`` at rest: W^2 = M^2 + 2 M nu - Q^2."""
+    """W for photon energy ``nu`` in the target rest frame (invariant p_T.q/M_T): W^2 = M^2 + 2 M nu - Q^2."""
     return np.sqrt(np.maximum(mass**2 + 2.0 * mass * np.asarray(nu, float) - Q2, 0.0))
 
 
@@ -265,8 +273,8 @@ class InclusiveModel:
         return F1 * _sf_factor(target, self.flux_mass)
 
     def kin_mass(self, target):
-        """Nucleon mass M the model uses to label the photon energy: nu = (W^2 - M^2 + Q^2)/2M
-        (also for d, where W is the free-nucleon label), gamma^2 = Q^2/nu^2."""
+        """Nucleon mass M in the conversion W -> nu = (W^2 - M^2 + Q^2)/2M
+        (also for d, where W only specifies nu), and in gamma^2 = Q^2/nu^2."""
         return _M
 
     def sf_mass(self, target):

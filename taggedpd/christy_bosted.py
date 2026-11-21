@@ -58,8 +58,10 @@ with W^2 computed as for a free nucleon at rest. Consequences:
 Kinematics and units
 --------------------
 GeV throughout. ``w2`` is the invariant mass squared *calculated assuming
-scattering from a free nucleon at rest* (also for the deuteron, where it is just
-a way to label the photon energy: nu = (w2 - M^2 + Q^2)/2M with the proton mass).
+scattering from a free nucleon at rest* in the target rest frame (also for the
+deuteron, where it is not the mass of any physical system, only a way of specifying
+the photon energy nu = p_D.q/M_D: nu = (w2 - M^2 + Q^2)/2M with the proton mass).
+All of these are invariants, so the same holds for collider kinematics.
 Cross sections are in microbarn. F1 is that of the free nucleon for p and n and of the
 **whole deuteron** for d (as returned by ``F1F2IN09``), but always F1 = M W1
 with the *nucleon* mass M (so x = Q^2/2M nu in (0, 2) for d). The inclusive layer

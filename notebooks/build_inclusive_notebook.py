@@ -50,12 +50,14 @@ Phys. Rev. C **114**, 025202 (2026), [arXiv:2603.23700](https://arxiv.org/abs/26
   status with the author.
 
 Conventions (details in the README and the `taggedpd.inclusive` docstring): GeV, cross sections
-in µb, $\alpha=\frac{1}{137.036}$, 1 GeV$^{-2}$ = 389.4 µb, $M$ the fit's nucleon mass. The target is at rest
-in the lab: a free nucleon for p, n, the deuteron for d. $\nu$ is the lab photon energy,
-$\nu=\frac{p_T\cdot q}{M_T}$ for that target. Bound nucleons move (Fermi motion) and are integrated over
+in µb, $\alpha=\frac{1}{137.036}$, 1 GeV$^{-2}$ = 389.4 µb, $M$ the fit's nucleon mass. All variables are Lorentz
+invariants, described in the target rest frame (valid for collider kinematics too). Target: a free nucleon
+for p, n, the deuteron for d. $\nu=\frac{p_T\cdot q}{M_T}$ is the photon energy in the target rest frame (in a
+collider, *not* the photon energy in the collider frame). Bound nucleons move (Fermi motion) and are integrated over
 inside the deuteron fits; no variable here refers to them. $W$ is the $\gamma^*N$ mass for p, n.
-For d it is the $\gamma^*N$ mass a free nucleon at rest would have, $W^2=M^2+2M\nu-Q^2$: only a
-label for $\nu$, not the $\gamma^*d$ mass.
+For d it is not the mass of any physical system, just another way of specifying $\nu$: $W^2=(p_N+q)^2$ for a free
+nucleon moving with the deuteron, $p_N=\frac{M}{M_D}p_D$, i.e. $W^2=M^2+2M\nu-Q^2$. It is not
+the $\gamma^*d$ mass.
 
 * p, n: $F_1=MW_1$, $F_2=\nu W_2$, $x_N=\frac{Q^2}{2M\nu}\in(0,1]$.
 * d, as in arXiv:2603.23700 (the deuteron's own SFs, not divided by 2): $F_1^D=M_DW_1$, $F_2^D=\nu W_2$,
@@ -141,8 +143,8 @@ fig.tight_layout(); save(fig, 'pp_neutron_construction')
 md(r"""
 ## 2. Real-photon total cross sections
 
-$\sigma_T(\gamma p)$, $\sigma_T(\gamma n)$ and $\frac{\sigma_T(\gamma d)}{2}$ versus $W$ and versus the photon lab
-energy. The shaded band marks where the default model uses the Christy–Bosted forms *outside* the
+$\sigma_T(\gamma p)$, $\sigma_T(\gamma n)$ and $\frac{\sigma_T(\gamma d)}{2}$ versus $W$ and versus the photon
+energy $\nu$ (target rest frame). The shaded band marks where the default model uses the Christy–Bosted forms *outside* the
 published fit range (between the pion threshold and $W=1.1$ GeV for p, n; $W<1.2$ GeV for d). As a
 sanity check, the $\Delta(1232)$ peak of $\gamma p$ is about 0.5 mb (PDG). The deuteron, plotted per
 nucleon, shows the Fermi-smeared resonances and the strength below the free-nucleon pion threshold

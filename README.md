@@ -181,8 +181,9 @@ Bodek fit's resonances are much weaker and broader than Christy–Bosted's.
 (factors of x and 2), so every option of `quantity=` is defined explicitly below. All of
 them are computed from the fit's own F1 and F2.
 
-*Targets and kinematic variables.* The target is at rest in the lab. For `"p"` and `"n"`
-it is a free nucleon. For `"d"` it is a deuteron, and its structure functions are the
+*Targets and kinematic variables.* All variables are Lorentz invariants. They are described in the
+*target rest frame* but can be computed in any frame, fixed-target or collider. For `"p"` and `"n"`
+the target is a free nucleon. For `"d"` it is a deuteron, and its structure functions are the
 deuteron's own (arXiv:2603.23700), not divided by 2: this is what "per nucleus" means here. The
 nucleons bound in the deuteron move (Fermi motion), so each has its own $p_N\cdot q$ and its
 own $\gamma^*N$ invariant mass. The deuteron fits integrate over these internally (smearing).
@@ -192,8 +193,8 @@ None of the variables below refers to a bound nucleon.
 |---|---|---|
 | $M$ | the fit's nucleon mass: 2009 fits 0.93828 (0.9382727 in $K$), 2021 fit 0.938272 (p, n) and the average nucleon mass (d) | |
 | $M_T$ | target mass: $M$ for p, n; $M_D$ (`constants.M_DEUTERON`) for d | |
-| $\nu$ | $\nu=\frac{p_T\cdot q}{M_T}$, the photon energy in the lab; $p_T$ is the target four-momentum (free nucleon or deuteron at rest) | |
-| $W$ | the input. For p, n: the $\gamma^*N$ invariant mass. For d: the $\gamma^*N$ mass a *free nucleon at rest* would have at this $\nu$, $W^2=M^2+2M\nu-Q^2$. It's only a label for $\nu$ (as in the fits), not the $\gamma^*d$ mass $W_D^2=M_D^2+2M_D\nu-Q^2$, and not the mass of any bound nucleon | |
+| $\nu$ | $\nu=\frac{p_T\cdot q}{M_T}$, the photon energy in the target rest frame ($p_T$: target four-momentum). Invariant: in a collider compute it from the four-vectors, e.g. $\frac{p_D\cdot q}{M_D}$; it is **not** the photon energy in the collider frame | |
+| $W$ | the input, always converted to $\nu$ by $W^2=M^2+2M\nu-Q^2$. For p, n this is the $\gamma^*N$ invariant mass. For d it is **not the mass of any physical system**: it is just another way of specifying the photon energy $\nu$, namely $W^2=(p_N+q)^2$ for a free nucleon moving with the deuteron, $p_N=\frac{M}{M_D}p_D$ (at rest in the deuteron rest frame; the fits use the same convention). It is not the $\gamma^*d$ mass $W_D^2=M_D^2+2M_D\nu-Q^2$, nor the mass of any bound, moving nucleon | |
 | $x_N$ | $\frac{Q^2}{2M\nu}$, Bjorken variable of a free nucleon; used for p, n | $(0,1]$ |
 | $x_D$ | $\frac{Q^2}{2M_D\nu}=\frac{Q^2}{2p_D\cdot q}$, Bjorken variable of the deuteron; used for d | $(0,1]$ |
 | $x$ (arXiv:2603.23700) | $2x_D=\frac{Q^2}{p_D\cdot q}$, used by `TaggedDIS`, **not** by this layer | $(0,2]$ |
@@ -220,11 +221,15 @@ $$
 
 with
 
-* $y=\frac{p_T\cdot q}{p_T\cdot l}$ and $\nu=\frac{p_T\cdot q}{M_T}$;
+* $y=\frac{p_T\cdot q}{p_T\cdot l}$ and $\nu=\frac{p_T\cdot q}{M_T}$, the photon energy in the target rest
+  frame. This is one quantity for all targets: $\frac{p\cdot q}{M}$ and $\frac{p_D\cdot q}{M_D}$ are just its
+  invariant form for a nucleon or a deuteron target, valid in any frame (collider included). At given $(W,Q^2)$, every target has the same $\nu$;
 * $\gamma^2=\frac{Q^2}{\nu^2}=\frac{4M_T^2x_T^2}{Q^2}$, and
   $\epsilon=\frac{1-y-\frac{1}{4}\gamma^2y^2}{1-y+\frac{1}{2}y^2+\frac{1}{4}\gamma^2y^2}$;
-* $K=\frac{W^2-M^2}{2M}=\frac{2p\cdot q-Q^2}{2M}$, with $W^2=(p+q)^2$ for a free nucleon. For d,
-  $W$ is the label defined above, and $K=\frac{1}{2M}\left(\frac{2M\,p_D\cdot q}{M_D}-Q^2\right)$;
+* $K=\frac{W^2-M^2}{2M}=\nu-\frac{Q^2}{2M}$ with the nucleon mass $M$. Since $W$, $\nu$ and $M$ are
+  the same for all targets, so is $K$. For p, n this $W$ is the actual $\gamma^*N$ mass $(p+q)^2$;
+  for d it just specifies $\nu$ (it is not $W_D$). Written with the deuteron's invariants, the
+  same $K$ reads $\frac{p_D\cdot q}{M_D}-\frac{Q^2}{2M}$;
 * $x_T=x_N$, $M_T=M$ for p, n and $x_T=x_D$, $M_T=M_D$ for d. For d this is arXiv:2603.23700's
   $d\sigma$ with $\frac{dx}{2}=dx_D$.
 
@@ -300,7 +305,7 @@ free-nucleon average $\bar F_1=\frac{F_{1p}+F_{1n}}{2}$. The deuteron is modelle
    (`mec_deuteron`, the Fortran `MEC`) is a Gaussian in $W$ centred at 1.086 GeV with width
    $\sqrt{0.005313}\approx73$ MeV, with no longitudinal part:
    $F_1^{\rm MEC}\propto\exp\left[-\frac{(W-1.086)^2}{0.005313}\right]\left(1+\frac{\max(Q^2,0.3)}{1.265}\right)^{-8}\nu^{0.30}$
-   (GeV units). "MEC" is just its label in the code.
+   (GeV units). "MEC" is just its name in the code.
 
 The parameters of $\bar F_1$ and of the dip term are fitted together to the inclusive deuteron
 data. The neutron is then $F_{1n}=2\bar F_1-F_{1p}^{\rm Christy}$. It depends on how the fit splits the
