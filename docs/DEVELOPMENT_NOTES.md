@@ -131,6 +131,11 @@ per-item logs there record every change. The published PRC versions still contai
   (Fig. 11) and `ALL_nucldep.pdf` (Fig. 16) were regenerated too but are pixel-identical to the published ones
   (γ_n hardly matters for A_LL at leading power), so the originals are kept. The script copies are in
   `arXiv_final/plot_scripts_arXivfix/`; nothing in `~/Calculations/poldeut/plots` was overwritten.
+- **g2 study figure** (not in the papers): the fixed `tagdeut_ALL_g2.py` on the new data gives
+  `~/Calculations/poldeut/plots/ALL_g2_kin2_arXivfix.pdf`. The old script on the old data reproduces
+  `ALL_g2_kin2.pdf` pixel for pixel, so this is the version to replace. F_[LS_L] is unchanged. The cos φ_p terms grow
+  (total ≈ +30% at its maximum; the g₂-only term ≈ 0.015 → 0.023 in magnitude at x_n ≈ 0.3). The
+  older `ALL_g2.pdf` uses different kinematics and was not regenerated.
 
 - **Plot scripts** (`~/Calculations/poldeut/plots`, not under version control; originals in
   `plots/backup_2026-11-18_before_fixes/`):
@@ -155,8 +160,6 @@ per-item logs there record every change. The published PRC versions still contai
 Still open:
 
 - Post the arXiv replacements, and then update the references here that say "posted text".
-- The g2 study figure (`tagdeut_ALL_g2.py`, `ALL_g2_2.pdf`) is not in the papers and was not
-  regenerated.
 
 ## Photoproduction branch (2026-11-19)
 
