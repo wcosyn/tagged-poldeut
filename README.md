@@ -133,9 +133,9 @@ parton-model F₂ and g₁ from LHAPDF6 sets (tested with those two; needs LHAPD
 bindings and `lhapdf install CT18LO NNPDFpol11_100`). Construction takes ~1 s (WW table);
 evaluation calls LHAPDF each time, so wrap it in `GriddedStructure` for event generation.
 
-Note: the text of arXiv:2603.23700 quotes DSSV09 for g₁ⁿ, but the C++ code (and thus the figures)
-uses GRSV2000 LO. These are different fits (GRSV2000: PRD 63, 094005 (2001); DSSV09:
-PRD 80, 034030 (2009)).
+Note: the currently posted text of arXiv:2603.23700 and the PRC version quote DSSV09 for g₁ⁿ, but the
+C++ code (and thus the figures) uses GRSV2000 LO; the arXiv replacement of 2026-11-21 cites GRSV2000.
+These are different fits (GRSV2000: PRD 63, 094005 (2001); DSSV09: PRD 80, 034030 (2009)).
 
 ## Inclusive structure functions, photoabsorption and the resonance region
 
@@ -427,9 +427,10 @@ The comparison with the 2009 fits is in `notebooks/inclusive.ipynb`, section 7.
 
 ## Issues found in existing material while porting
 
-Items 1 and 2 are fixed in the plot scripts, the C++ and the data (see
-[docs/DEVELOPMENT_NOTES.md](docs/DEVELOPMENT_NOTES.md#status-of-fixes)); arXiv:2603.23700's figures
-still need to be regenerated from them.
+All items except 5 are fixed in the arXiv replacements of both papers, prepared on 2026-11-21 and not yet posted.
+Items 1 and 2 are also fixed in the plot scripts, the C++ and the data. The published PRC versions
+(Phys. Rev. C 114, 025201/025202) still contain all of them. The status of each fix is in
+[docs/DEVELOPMENT_NOTES.md](docs/DEVELOPMENT_NOTES.md#status-of-fixes).
 
 1. **Fig. 12 was ~30% too small** in the draft. The plot scripts `tagdeut_ALL_ALT.py`,
    `tagdeut_ALL_ALT_pt.py` and `tagdeut_ALL_g2.py` used `gamma = 2.*x_n*0.93/Q2` instead
@@ -437,18 +438,28 @@ still need to be regenerated from them.
    101-point left Riemann sum that overestimated |g₁+g₂| by 7.5% at x = 0.1, and by a
    factor ~3 at x = 0.002 (fixed in nucqcd commit `e9d1e6a`). Correct value at
    α_p = 1, p_T = 0: 0.0098 (draft: ≈0.0075). `GRSV2000Structure(ww="cpp")` reproduces
-   the old C++ numbers.
+   the old C++ numbers. *Fixed in the arXiv replacement:* Fig. 12 regenerated. Figs. 11 and 16 (A_LL; Fig. 16
+   compares AV18 and CD-Bonn) were regenerated too; they are unchanged to plotting accuracy.
 2. **Figs. 9 and 15 were 10× too large.** `tagdeut_unpolcross_log.py` and
    `tagdeut_unpolcross_ndep.py` converted to nb with `0.197*0.197*10E07`; `10E07` is 10⁸.
    The model ratio in Fig. 15 is unaffected. Also, "s = 800 GeV²" there is the
    **electron–nucleon** invariant (5×41 GeV), which is what gives ε = 0.98; use
-   `Kinematics.from_s(..., per_nucleon=True)`.
+   `Kinematics.from_s(..., per_nucleon=True)`. *Fixed in the arXiv replacement:* Figs. 9 and 15
+   regenerated, and the Fig. 9 caption now says that s is the electron–nucleon squared c.m. energy.
 3. **Eq. (4.25), "(same for T_LT, T_TT)":** ∫P[T_TT,U] = −0.22 and ∫(2−α_p)P[T_LT,U] = 0.021
    are not zero by themselves. They drop out only through the cos(2φ_p−2φ_TT) and
    cos(φ_p−φ_TL) factors of Eq. (4.22) under the φ_p integration. The "traceless"
-   argument applies to T_LL only.
+   argument applies to T_LL only. *Fixed in the arXiv replacement:* the parenthetical now says that for
+   T_LT and T_TT the integrals vanish only together with the azimuthal factors of Eq. (4.22).
 4. **Eq. (5.16c)** writes the partner structure as cos(3φ_p − φ_TT). The master formula
    (arXiv:2603.23699 Eq. 4.39) has cos(3φ_p − 2φ_TT), and that is what is used here.
+   *Fixed in the arXiv replacement.*
 5. Minor: ω₂(AV18) = 0.0578 from the parametrization (exact closed form) vs 0.0576 in
    Table III. A 1.2 GeV cutoff (the C++ interpolation range) only gives 0.0577, so the
-   origin of the difference is unclear.
+   origin of the difference is unclear. Not changed in the paper.
+6. **g₁ parametrization.** Sec. VI A cited DSSV09, but the figures use GRSV2000 LO (see above).
+   *Fixed in the arXiv replacement:* the text now cites GRSV2000 (LO).
+7. **Eq. (5.x), the list of beam-polarized tensor structures that vanish in the IA**, used the outdated
+   angles φ_{T∥}, φ_{T⊥}. Its T_TT angles did not match the master formula, and F_[LT_LT]^sin(φ_p−φ_TL) was missing.
+   All of these structures are zero in the IA (and here), so no number is affected. *Fixed in the arXiv
+   replacement:* the list now matches arXiv:2603.23699.

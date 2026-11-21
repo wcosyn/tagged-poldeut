@@ -24,7 +24,7 @@ of an MC generator. The requirements were:
 | Question | Decision | Rationale |
 |---|---|---|
 | Repository | `tagged-poldeut`, package `taggedpd`, private on GitHub | — |
-| g1 input | GRSV2000 LO (the grid already in `nucqcd/share/grsv`), behind a pluggable interface, plus an LHAPDF backend | It is what the C++, and therefore the figures, actually use. The text of arXiv:2603.23700 says DSSV09, a different fit. |
+| g1 input | GRSV2000 LO (the grid already in `nucqcd/share/grsv`), behind a pluggable interface, plus an LHAPDF backend | It is what the C++, and therefore the figures, actually use. The posted text of arXiv:2603.23700 says DSSV09, a different fit (corrected in the 2026-11-21 replacement). |
 | R = σ_L/σ_T | constant R = 0.18 by default; E143 `r1998` available | matches Sec. VI A of arXiv:2603.23700 |
 | F1 target-mass factor | (1+γ²) included by default (`target_mass=True`) | the C++ code that produced the figures includes it; `False` gives the strict DIS limit |
 | WW g1+g2 | accurate tabulated integral by default; `ww="cpp"` reproduces the old C++ Riemann sum | the old C++ sum was inaccurate (issue 1 below, now fixed in nucqcd) |
@@ -73,8 +73,9 @@ Reference data in `tests/reference/` is subsampled C++ output: `lf_dens_24_*_fin
   tested against proton tagging: same LF distributions, and each structure function
   scales with the ratio of the proton/neutron input it contains.
 - **Notebook.** It executes cleanly in Jupyter (kernel "Python (taggedpd)", local
-  `.venv`). Figs. 3–8, 10, 11, 13, 14, 16 and 17 agree with arXiv:2603.23700; Figs. 9, 12 and 15
-  differ for the reasons below.
+  `.venv`). Figs. 3–8, 10, 11, 13, 14, 16 and 17 agree with arXiv:2603.23700. Figs. 9, 12 and 15
+  differ from the posted/PRC versions for the reasons below; the regenerated figures in the
+  arXiv replacement of 2026-11-21 come from the fixed scripts, which agree with `taggedpd` (see "Status of fixes").
 - **Speed.** About 3 µs per event for the full σ_red, vectorized; start-up ~0.1 s.
 
 ## Issues found in existing material
@@ -102,11 +103,34 @@ These affected the draft of arXiv:2603.23700 (found before publication).
    has cos(3φ_p − 2φ_TT), which is what is used here.
 7. **Table III, ω₂(AV18) = 0.0576.** The parametrization gives 0.0578 exactly; a 1.2 GeV
    cutoff gives 0.0577. The origin of the difference is unclear.
+8. **The IA "= 0" list of beam-polarized tensor structures** (Sec. V, the equation before "linear in
+   ... s_n") uses the outdated angles φ_{T∥}, φ_{T⊥}. The T_TT entries read sin φ_T⊥, sin(φ_p−φ_T⊥),
+   sin(3φ_p−φ_T⊥), where arXiv:2603.23699 has sin(φ_p−2φ_TT), sin(2φ_p−2φ_TT), sin(3φ_p−2φ_TT), and
+   F_[LT_LT]^sin(φ_p−φ_TL) is missing. All of these structures are zero in the IA, so no number is affected.
+   Found while preparing the arXiv replacement.
 
 ## Status of fixes
 
-State on 2026-11-18. Issues 1 and 2 are fixed at the source; the figures themselves have
-not been regenerated yet.
+State on 2026-11-21. Issues 1 and 2 are fixed at the source and in the figures of the arXiv
+replacement. Issues 3–6 and 8 are fixed in its text. Issue 7 is left as is. The replacement (both
+papers, not yet posted) is in `2026 - Kinematics/arXiv_final/` on OneDrive. Its README and the
+per-item logs there record every change. The published PRC versions still contain all the issues.
+
+- **Paper text (arXiv replacement, 2026-11-21):**
+  - issue 3: Eq. (4.25) parenthetical now "(for T_LT, T_TT the integrals vanish only together with
+    the azimuthal factors in Eq. (4.22))"; also the typo "integrates to [zero] due to";
+  - issue 4: Eq. (5.16c) cos(3φ_p − 2φ_TT);
+  - issue 5: Fig. 9 caption states that s is the electron–nucleon squared c.m. energy;
+  - issue 6: Sec. VI A cites GRSV2000 (LO), Glück et al., PRD 63, 094005;
+  - issue 8: the list uses φ_{T_L}, φ_{T_T} and the master-formula angles, and the missing entry was added.
+  Equation, figure and table numbers are unchanged, so the references in this repository still apply.
+- **Figures (arXiv replacement):** regenerated with the fixed scripts on the Nov 18 data. They are saved under new
+  names: `sigma_unpol_log_arXivfix.pdf` (Fig. 9, 10× smaller), `ALT_nodepol_v2_arXivfix.pdf`
+  (Fig. 12, ~30% larger) and `sigma_unpol_ndep_v2_arXivfix.pdf` (Fig. 15, 10× smaller; y-range moved
+  down one decade to 1e-1–1e3, the only change to `tagdeut_unpolcross_ndep.py`). `ALL_nodepol_v2.pdf`
+  (Fig. 11) and `ALL_nucldep.pdf` (Fig. 16) were regenerated too but are pixel-identical to the published ones
+  (γ_n hardly matters for A_LL at leading power), so the originals are kept. The script copies are in
+  `arXiv_final/plot_scripts_arXivfix/`; nothing in `~/Calculations/poldeut/plots` was overwritten.
 
 - **Plot scripts** (`~/Calculations/poldeut/plots`, not under version control; originals in
   `plots/backup_2026-11-18_before_fixes/`):
@@ -130,10 +154,10 @@ not been regenerated yet.
 
 Still open:
 
-- Regenerate Figs. 9, 12 and 15 (and the g2 study figure) for arXiv:2603.23700.
-- matplotlib `usetex` needs the `cm-super` fonts, which are missing on the upgraded system
-  (`sudo apt install cm-super`); without them some figures fail to save
-  (e.g. `ALT_nodepol_v2.pdf`).
+- Post the arXiv replacements, and then update the references here that say "posted text".
+- The g2 study figure (`tagdeut_ALL_g2.py`, `ALL_g2_2.pdf`) is not in the papers and was not
+  regenerated.
+- `cm-super` is now installed; matplotlib `usetex` figures save again.
 - nucqcd was reinstalled into `lib/` and `bin/` after the OS upgrade (the old
   install linked GSL 27, which is gone). `GPD_Partons` and `progs/GPD` do not build:
   the installed PARTONS headers need SFML, and `diDVCS_gen_gridonly` lacks the ROOT
