@@ -117,7 +117,7 @@ def test_photoproduction_2021_consistency():
         W = np.linspace(1.1, 4.4, 30)
         assert np.allclose(photoproduction(W, "p", model=m), c21.rescsp(W**2, 0.0)[0], rtol=1e-13)
         assert np.allclose(photoproduction(W, "n", model=m), c21.rescsn(W**2, 0.0)[0], rtol=1e-13)
-        F1d = photoproduction(W, "d", "F1", model=m)       # Part II: M_D W1 = (M_D/M) x native
+        F1d = photoproduction(W, "d", "F1", model=m)       # arXiv:2603.23700: M_D W1 = (M_D/M) x native
         assert np.allclose(F1d, M_DEUTERON / c21._MAVG * c21.rescsd(W**2, 0.0)[0], rtol=1e-13)
         _, src = photoproduction(np.array([1.0, 1.5, 4.6]), "p", model=m, return_source=True)
         assert list(src) == ["below pion threshold", "Christy 2021 (PRELIMINARY)", ""]

@@ -4,6 +4,10 @@ One layer, in the variables (W, Q^2), for the nucleon and the deuteron, valid fr
 photons (Q^2 = 0) through the resonance region to DIS. The same model object serves
 real photoproduction and, through :class:`AsNucleonStructure`, the tagged-DIS code.
 
+The F_T, F_L and deuteron conventions are those of W. Cosyn and C. Weiss,
+Phys. Rev. C 114, 025201 (2026), arXiv:2603.23699 and Phys. Rev. C 114, 025202 (2026),
+arXiv:2603.23700.
+
 Main entry point::
 
     from taggedpd.inclusive import inclusive_sf
@@ -83,7 +87,7 @@ GeV, cross sections in **microbarn** (alpha = 1/137.036, 2021 fit 1/137.03599;
 part only: photodisintegration gamma d -> p n is not included.
 
 Targets and kinematic variables. The target is at rest in the lab: a free nucleon for
-"p", "n"; the deuteron for "d", whose structure functions are the deuteron's own (Part II),
+"p", "n"; the deuteron for "d", whose structure functions are the deuteron's own (arXiv:2603.23700),
 not divided by 2 ("per nucleus"). Bound nucleons move (Fermi motion) and each has its
 own p_N.q and gamma*N mass; the deuteron fits integrate over that internally. None of
 the variables below refers to a bound nucleon.
@@ -102,10 +106,10 @@ W           input. p, n: gamma*N invariant mass. d: the gamma*N mass a *free
             only a label for nu (as in the fits); NOT the gamma*d mass
             W_D^2 = M_D^2 + 2 M_D nu - Q^2, nor that of a bound nucleon.
             :func:`W_from_nu` / :func:`nu_from_W` convert.
-x_N         Q^2/(2 M nu), free-nucleon Bjorken variable, used for p, n        (0, 1]
+x_N         Q^2/(2 M nu), free-nucleon Bjorken variable, used for p, n       (0, 1]
 x_D         Q^2/(2 M_D nu) = Q^2/(2 p_D.q), deuteron Bjorken variable,       (0, 1]
             used for d
-x (Part II) 2 x_D, the tagged-DIS variable of :mod:`taggedpd.crosssection`; (0, 2]
+x (tagged)  2 x_D, tagged-DIS variable of arXiv:2603.23700 (TaggedDIS);      (0, 2]
             NOT used here
 gamma^2     Q^2/nu^2 = 4 M^2 x_N^2/Q^2 = 4 M_D^2 x_D^2/Q^2
 K           Hand's equivalent photon energy for a free nucleon,
@@ -127,7 +131,7 @@ electron cross section as a flux Gamma times sigma_T + eps sigma_L. In invariant
     y = p_T.q/p_T.l,  eps = (1 - y - gamma^2 y^2/4)/(1 - y + y^2/2 + gamma^2 y^2/4),
     K = (W^2 - M^2)/2M = nu - Q^2/2M  (W^2 = (p+q)^2 for a free nucleon; the label for d).
 
-K cancels in Gamma sigma: only F_T, F_L (W1, W2) are physical. For d this is Part II's
+K cancels in Gamma sigma: only F_T, F_L (W1, W2) are physical. For d this is arXiv:2603.23700's
 d sigma (dx/2 = dx_D). For real photons (Q^2 -> 0): K/nu -> 1, gamma^2 -> 0,
 sigma_L -> 0, and sigma_T is the measured total photoabsorption cross section. At
 Q^2 > 0 the normalization of sigma_T depends on the choice of K (Gamma sigma_T does not).
@@ -142,18 +146,18 @@ quantity        definition                                    remarks
 "R"             sigma_L/sigma_T = F_L/F_T
 "F1"            M_T W1 = (M_T/M) sigma_T (W^2 - M^2)/(8 pi^2 alpha)  p, n: the fits' native F1
 "F2"            nu W2                                          0 at Q^2 = 0
-"F_T"           F_[UU,T] = 2 F1                                paper (Parts I, II) convention
+"F_T"           F_[UU,T] = 2 F1                                arXiv:2603.23699/23700 convention
 "F_L"           F_[UU,L] = (1 + gamma^2) F2/x_T - 2 F1         exact (target-mass) relation
                 = R F_T
 "F_L_scaling"   F2/x_T - 2 F1                                  scaling limit (gamma -> 0),
-                = F_T (R - gamma^2)/(1 + gamma^2)              paper Eq. (5.10)
+                = F_T (R - gamma^2)/(1 + gamma^2)              arXiv:2603.23700 Eq. (5.10)
 "xF_L"          (1 + gamma^2) F2 - 2 x_T F1 = x_T F_[UU,L]     the "F_L" of Christy-Bosted /
                                                                SIMC and of many DIS papers
 =============== ============================================ ==================================
 
 Notes:
 
-* Deuteron (Part II): F1^D = M_D W1, F2^D = nu W2, Callan-Gross F2^D = 2 x_D F1^D. In the
+* Deuteron (arXiv:2603.23700): F1^D = M_D W1, F2^D = nu W2, Callan-Gross F2^D = 2 x_D F1^D. In the
   scaling limit F2^D ~ F2p + F2n and F1^D ~ 2 (F1p + F1n): the F1-type deuteron functions
   are about **4x** the nucleon average, F2 about 2x.
 * The low-level ports (:mod:`taggedpd.christy_bosted`, :mod:`taggedpd.christy_bosted21`)
@@ -222,7 +226,7 @@ def _norm_target(target):
 # interface
 # ===========================================================================
 def _sf_factor(target, M):
-    """F1 = M_T W1 relative to M W1: 1 for p, n; M_D/M for d (Part II convention)."""
+    """F1 = M_T W1 relative to M W1: 1 for p, n; M_D/M for d (arXiv:2603.23700 convention)."""
     return M_DEUTERON / M if _norm_target(target) == "d" else 1.0
 
 
@@ -253,7 +257,7 @@ class InclusiveModel:
         return cb.sigmaT_from_F1(F1, W * W, self.flux_mass)
 
     def F1(self, W, Q2, target):
-        """F1 = M_T W1 of the target: free nucleon for p, n (M_T = M); deuteron for d (M_T = M_D, Part II)."""
+        """F1 = M_T W1 of the target: free nucleon for p, n (M_T = M); deuteron for d (M_T = M_D, arXiv:2603.23700)."""
         if type(self).sigma_T is InclusiveModel.sigma_T:
             raise NotImplementedError(f"{type(self).__name__} implements neither sigma_T nor F1")
         W = np.asarray(W, float)
@@ -326,9 +330,9 @@ QUANTITIES = {
     "R": "sigma_L / sigma_T = F_L / F_T",
     "F1": "F1 = M_T W1 = (M_T/M) sigma_T (W^2 - M^2) / (8 pi^2 alpha)  (M_T = M_D for d: per nucleus, x_D)",
     "F2": "F2 = nu W2",
-    "F_T": "F_[UU,T] = 2 F1  (paper, Parts I and II)",
+    "F_T": "F_[UU,T] = 2 F1  (arXiv:2603.23699 and arXiv:2603.23700)",
     "F_L": "F_[UU,L] = (1 + gamma^2) F2 / x_T - 2 F1 = R F_T  (exact; x_T = x_N for p, n, x_D for d; gamma^2 = Q^2/nu^2)",
-    "F_L_scaling": "F2 / x_T - 2 F1  (scaling-limit relation gamma -> 0, paper Eq. (5.10))",
+    "F_L_scaling": "F2 / x_T - 2 F1  (scaling-limit relation gamma -> 0, arXiv:2603.23700 Eq. (5.10))",
     "xF_L": "x_T F_[UU,L] = (1 + gamma^2) F2 - 2 x_T F1 = 2 x_T F1 R  (the 'F_L' of Christy-Bosted / SIMC, "
             "of many DIS papers)",
 }
@@ -380,7 +384,7 @@ class ChristyBosted(InclusiveModel):
         return self.F1F2R(W, Q2, target)[0]
 
     def F1F2R(self, W, Q2, target):
-        """(F1, F2, R) of F1F2IN09; for d, F1 is converted to the Part II convention M_D W1."""
+        """(F1, F2, R) of F1F2IN09; for d, F1 is converted to the arXiv:2603.23700 convention M_D W1."""
         W = np.asarray(W, float)
         t = _norm_target(target)
         F1, F2, R = cb.f1f2in09(t, Q2, W * W, binned=self.binned)
@@ -445,7 +449,7 @@ class ChristyBosted2021(InclusiveModel):
         return self.F1F2(W, Q2, target)[0]
 
     def F1F2(self, W, Q2, target):
-        """(F1, F2) of F1F2IN21; for d, F1 is converted to the Part II convention M_D W1."""
+        """(F1, F2) of F1F2IN21; for d, F1 is converted to the arXiv:2603.23700 convention M_D W1."""
         W = np.asarray(W, float)
         t = _norm_target(target)
         F1, F2 = cb21.f1f2in21(t, Q2, W * W)
@@ -759,7 +763,7 @@ def inclusive_sf(W, target="p", quantity="sigma_T", Q2=0.0, model=None, return_s
         One of :data:`QUANTITIES`: "sigma_T", "sigma_L" [microbarn], "R", "F1", "F2",
         "F_T" (= 2F1), "F_L" (= (1+gamma^2)F2/x - 2F1 = R F_T), "F_L_scaling"
         (= F2/x - 2F1), "xF_L" (= (1+gamma^2)F2 - 2xF1). See the module docstring
-        for the conventions; F_T, F_L follow the paper (Part I).
+        for the conventions; F_T, F_L follow arXiv:2603.23699 and arXiv:2603.23700.
     Q2 : array_like
         Photon virtuality [GeV^2], default 0 (real photons).
     model : InclusiveModel, optional
@@ -820,7 +824,7 @@ def resonance_dis_model(dis=None, W_blend=(2.5, 3.0), fit="2009", dis_Q2_min=1.0
     Parameters
     ----------
     dis : NucleonStructure, optional
-        Default: ``SLACStructure(R=0.18, target_mass=True)`` (the paper's input).
+        Default: ``SLACStructure(R=0.18, target_mass=True)`` (arXiv:2603.23700's input).
     W_blend : (float, float)
         Transition window in W [GeV]; must lie inside the Christy-Bosted range
         (W <= 3.0 GeV for the 2009 neutron).

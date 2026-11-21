@@ -1,6 +1,6 @@
 r"""Tagged DIS on the polarized deuteron: structure functions, cross section, asymmetries.
 
-Process (paper Eq. (2.1)), here with a tagged proton and an active neutron
+Process (arXiv:2603.23700 Eq. (2.1)), here with a tagged proton and an active neutron
 (``tagged="n"`` swaps the roles):
 
 .. math::  e(l, \lambda_e) + D(p_D | S_D, T_D) \to e'(l') + X + p(p_p)
@@ -12,12 +12,12 @@ Q2       : [GeV^2]
 y        : p_D.q / p_D.l ; from the e-D invariant s: y = 2 Q^2 / (x (s - M_D^2))
 alpha_p  : spectator LF momentum fraction (Eq. (2.12)), kinematic limit alpha_p < 2 - x
 pT       : |p_pT| [GeV]
-phi_p    : spectator azimuth relative to the lepton plane (Part I, Fig. 1) [rad]
+phi_p    : spectator azimuth relative to the lepton plane (arXiv:2603.23699, Fig. 1) [rad]
 lambda_e : electron helicity, +-1/2 (enters the master formula as 2 lambda_e)
 
 Cross section
 -------------
-Part I master formula (Eqs. (4.36)-(4.39) of Part I = Eq. (2.18) of the paper):
+Master formula of arXiv:2603.23699 (Eqs. (4.36)-(4.39) of arXiv:2603.23699 = Eq. (2.18) of arXiv:2603.23700):
 
 .. math::
     d\sigma = \frac{2\pi\alpha^2 y^2}{Q^4(1-\epsilon)} \frac{dx}{2} dQ^2
@@ -27,10 +27,10 @@ Part I master formula (Eqs. (4.36)-(4.39) of Part I = Eq. (2.18) of the paper):
 and the reduced cross section (Eq. (2.21b)) :math:`\sigma_{\rm red,D} = \tfrac{x}{2}(\mathcal F_U+\mathcal F_S+\mathcal F_T)`,
 normalized such that :math:`\int d\Gamma_p\,\sigma_{\rm red,D} \approx F_{2n} - (1-\epsilon)F_{Ln}`.
 
-Structure functions in the impulse approximation: paper Eqs. (5.12), (5.14)-(5.16),
+Structure functions in the impulse approximation: arXiv:2603.23700 Eqs. (5.12), (5.14)-(5.16),
 (5.26)-(5.27). The T-odd structures (and all others listed in Eqs. (5.17), (5.28)) are
 zero in the IA. Leading-twist and power-suppressed structures are all kept, exactly as
-written in the paper (the power-suppressed ones are only rough estimates, Sec. III D).
+written in arXiv:2603.23700 (the power-suppressed ones are only rough estimates, Sec. III D).
 """
 
 from __future__ import annotations
@@ -61,9 +61,9 @@ class Kinematics:
     Attributes
     ----------
     x, Q2, y, epsilon, gamma
-        gamma = x M_D / Q (= 2 x_D M_D / Q, Part I Eq. (2.9)); epsilon from Part I
+        gamma = x M_D / Q (= 2 x_D M_D / Q, arXiv:2603.23699 Eq. (2.9)); epsilon from arXiv:2603.23699
         Eq. (epsilon_from_y). With ``dis_limit=True``, gamma is set to 0 in epsilon
-        and in the target-polarization axis angles (as in the paper's Sec. VI).
+        and in the target-polarization axis angles (as in arXiv:2603.23700's Sec. VI).
     """
     x: np.ndarray
     Q2: np.ndarray
@@ -93,7 +93,7 @@ class Kinematics:
         ``per_nucleon=False``: s = (l + p_D)^2 (electron-deuteron),
         y = 2 Q^2 / (x (s - M_D^2)).
         ``per_nucleon=True``: s = (l + p_D/2)^2 (electron-nucleon, e.g. 4 E_e E_A/A
-        for colliding beams; the convention of the paper's Figs. 9 and 15,
+        for colliding beams; the convention of arXiv:2603.23700's Figs. 9 and 15,
         "s = 800 GeV^2" for 5 x 41 GeV), y = Q^2 / (x (s - M_D^2/4)).
         """
         x, Q2, s = (np.asarray(v, float) for v in (x, Q2, s))
@@ -105,7 +105,7 @@ class Kinematics:
 
     @classmethod
     def from_epsilon(cls, x, Q2, epsilon, dis_limit=True):
-        """Fix epsilon directly (as in the paper's figures); y is inverted from it."""
+        """Fix epsilon directly (as in arXiv:2603.23700's figures); y is inverted from it."""
         x, Q2, eps = (np.asarray(v, float) for v in (x, Q2, epsilon))
         gamma = 0.0 * x if dis_limit else cls._gamma(x, Q2)
         # solve eps (1-y+y^2/2+g y^2) = 1-y-g y^2 with g = gamma^2/4 for y in [0,1]
@@ -133,7 +133,7 @@ class Kinematics:
 # ===========================================================================
 @dataclass
 class Polarization:
-    r"""Invariant deuteron polarization parameters (paper Eq. (2.24), Part I Sec. III B).
+    r"""Invariant deuteron polarization parameters (arXiv:2603.23700 Eq. (2.24), arXiv:2603.23699 Sec. III B).
 
     {S_L, S_T, phi_S}, {T_LL, T_LT, T_TT, phi_TL, phi_TT}; angles in radians,
     measured relative to the lepton scattering plane like phi_p.
@@ -151,7 +151,7 @@ class Polarization:
     # ---------------------------------------------------------------------
     @staticmethod
     def W(Lam):
-        """W(Lambda) = (1, -2, 1) for Lambda = (+1, 0, -1), paper Eq. (2.28c)."""
+        """W(Lambda) = (1, -2, 1) for Lambda = (+1, 0, -1), arXiv:2603.23700 Eq. (2.28c)."""
         return {1: 1.0, 0: -2.0, -1: 1.0}[int(Lam)]
 
     @classmethod
@@ -159,7 +159,7 @@ class Polarization:
         r"""Mixed state with vector/tensor polarization Pz, Pzz along axis N(theta_N, phi_N).
 
         ``Pz = n_+ - n_-``, ``Pzz = n_+ + n_- - 2 n_0`` (occupation numbers of the
-        Lambda = +1, 0, -1 states along N). Linear superposition of Part I
+        Lambda = +1, 0, -1 states along N). Linear superposition of arXiv:2603.23699
         Eq. (pure_state_invariant), so ``along_axis(th, ph, Pz=L, Pzz=W(L))`` is the
         pure state Lambda = L. theta_N is the polar angle of N w.r.t. e_z (the
         collinear axis, opposite to q) in the deuteron rest frame.
@@ -174,7 +174,7 @@ class Polarization:
         """Pure spin state Lambda in {+1, 0, -1} along N(theta_N, phi_N)."""
         return cls.along_axis(theta_N, phi_N, Pz=float(Lam), Pzz=cls.W(Lam))
 
-    # --- polarization defined w.r.t. the lepton beam (Part I Sec. V A) ------
+    # --- polarization defined w.r.t. the lepton beam (arXiv:2603.23699 Sec. V A) ------
     @staticmethod
     def beam_axis_angles(kin: Kinematics, orientation="parallel", psi_N=0.0):
         r"""(theta_N, phi_N) of the polarization axis for beam-referenced setups.
@@ -182,7 +182,7 @@ class Polarization:
         ``"parallel"``: N opposite to the incoming lepton momentum in the deuteron
         rest frame (Lambda = +1 means spin opposite to the beam).
         ``"perp"``: N perpendicular to the beam, at angle psi_N from the lepton
-        plane (Part I Fig. 2). Uses kin.gamma (0 in the DIS limit) and kin.y.
+        plane (arXiv:2603.23699 Fig. 2). Uses kin.gamma (0 in the DIS limit) and kin.y.
         """
         g, y = kin.gamma, kin.y
         root = np.sqrt(np.maximum(1 - y - g * g * y * y / 4, 0.0))
@@ -260,10 +260,10 @@ class TaggedDIS:
         r"""All IA tagged deuteron structure functions [GeV^-2] at (x, Q2, alpha_p, pT).
 
         Returns a dict with the keys in ``_SF_NAMES`` (see source for the map to the
-        paper's notation) plus the neutron densities ``"P"`` and nucleon inputs.
+        notation of arXiv:2603.23700) plus the neutron densities ``"P"`` and nucleon inputs.
         Kinematically forbidden points (alpha_p >= 2 - x) give 0.
 
-        Naming (paper notation -> key):
+        Naming (arXiv:2603.23700 notation -> key):
 
         ===========================================  ===================
         F_[UU,T]D, F_[UU,L]D                          UU_T, UU_L
@@ -283,7 +283,7 @@ class TaggedDIS:
         ===========================================  ===================
 
         (Eq. (5.16c) of the draft writes the partner of cos(phi_p-2phi_TT) as
-        cos(3phi_p-phi_TT); the master formula, Part I Eq. (4.39), has
+        cos(3phi_p-phi_TT); the master formula, arXiv:2603.23699 Eq. (4.39), has
         cos(3phi_p-2phi_TT), which is what is used here.)
         """
         x, Q2, alpha_p, pT = np.broadcast_arrays(*(np.asarray(v, float)
@@ -345,7 +345,7 @@ class TaggedDIS:
     @staticmethod
     def assemble(sf, eps, phi_p=0.0, lambda_e=0.0, pol: Polarization | None = None,
                  phi_averaged=False):
-        r"""F_U + F_S + F_T from the structure functions (Part I master formula).
+        r"""F_U + F_S + F_T from the structure functions (master formula of arXiv:2603.23699).
 
         Parameters
         ----------
@@ -354,7 +354,7 @@ class TaggedDIS:
         phi_p : spectator azimuth w.r.t. the lepton plane [rad]
         lambda_e : electron helicity in {-1/2, 0, +1/2} (0 = unpolarized beam)
         pol : :class:`Polarization` (default unpolarized deuteron)
-        phi_averaged : if True return <F>_1 = int dphi_p/2pi F (Part I
+        phi_averaged : if True return <F>_1 = int dphi_p/2pi F (arXiv:2603.23699
             Eq. (cross_section_harmonic_1)); phi_p is then ignored.
 
         Only the terms that are nonzero in the IA are included (the T-odd
@@ -398,7 +398,7 @@ class TaggedDIS:
     def reduced_cross_section(self, kin: Kinematics, alpha_p, pT, phi_p=0.0,
                               lambda_e=0.0, pol: Polarization | None = None,
                               phi_averaged=False):
-        r"""sigma_red,D = (x/2)(F_U + F_S + F_T)  [GeV^-2], paper Eq. (2.21b).
+        r"""sigma_red,D = (x/2)(F_U + F_S + F_T)  [GeV^-2], arXiv:2603.23700 Eq. (2.21b).
 
         Differential in dGamma_p, i.e. ``int dGamma_p sigma_red ~ F2n - (1-eps)FLn``
         (Eq. (2.22)).
@@ -421,7 +421,7 @@ class TaggedDIS:
         return out * GEV2_TO_NB if nb else out
 
     # ------------------------------------------------------------------
-    # spin asymmetries (Part I Sec. V D) built from pure states
+    # spin asymmetries (arXiv:2603.23699 Sec. V D) built from pure states
     # ------------------------------------------------------------------
     def _state_F(self, sf, kin, theta_N, phi_N, Lam, lambda_e, phi_p, phi_averaged):
         pol = Polarization.pure_state(Lam, theta_N, phi_N)
@@ -429,7 +429,7 @@ class TaggedDIS:
 
     def vector_asymmetry(self, kin: Kinematics, alpha_p, pT, orientation="parallel",
                          psi_N=0.0, phi_p=0.0, phi_averaged=True):
-        r"""Two-state double-spin asymmetry A^V (Part I Eq. (double_spin_asymmetry)).
+        r"""Two-state double-spin asymmetry A^V (arXiv:2603.23699 Eq. (double_spin_asymmetry)).
 
         [s(++) - s(-+) - s(+-) + s(--)] / [sum], s(lambda_e, Lambda) for
         lambda_e = +-1/2 and deuteron Lambda = +-1 along the beam-referenced axis.
@@ -445,7 +445,7 @@ class TaggedDIS:
 
     def tensor_asymmetry(self, kin: Kinematics, alpha_p, pT, orientation="parallel",
                          psi_N=0.0, phi_p=0.0, phi_averaged=True):
-        r"""Tensor asymmetry A^T = [s(+) + s(-) - 2 s(0)] / [s(+) + s(-) + s(0)], Part I Eq. (AT_gen).
+        r"""Tensor asymmetry A^T = [s(+) + s(-) - 2 s(0)] / [s(+) + s(-) + s(0)], arXiv:2603.23699 Eq. (AT_gen).
 
         Beam-helicity averaged. In the DIS limit and IA, parallel gives Eq. (6.12),
         perpendicular Eq. (6.16); with ``phi_averaged=False`` the phi_p-dependent

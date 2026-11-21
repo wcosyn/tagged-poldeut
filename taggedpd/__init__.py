@@ -2,10 +2,15 @@
 
 Lightweight, numpy-vectorized implementation of
 
-  W. Cosyn and C. Weiss, "Semi-inclusive deep-inelastic scattering on a polarized
-  spin-1 target. II. Deuteron and spectator nucleon tagging" (JLAB-THY-26-4661),
+  W. Cosyn and C. Weiss, "Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. II. Deuteron and spectator nucleon tagging",
+  Phys. Rev. C 114, 025202 (2026), arXiv:2603.23700 (JLAB-THY-26-4661),
 
-with the cross-section decomposition of Part I (same authors). Main entry points:
+with the cross-section decomposition of
+
+  W. Cosyn and C. Weiss, "Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. I. Cross section and spin observables",
+  Phys. Rev. C 114, 025201 (2026), arXiv:2603.23699 (JLAB-THY-26-4663).
+
+Equation and section numbers refer to the arXiv versions. Main entry points:
 
 * :class:`~taggedpd.wavefunctions.DeuteronWavefunction` -- AV18 / CDBonn / Paris radial functions
 * :class:`~taggedpd.densities.LFDistributions`          -- neutron LF momentum/spin distributions (Sec. IV)

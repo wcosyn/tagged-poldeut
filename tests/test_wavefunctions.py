@@ -1,4 +1,4 @@
-"""Deuteron wave function: normalization (paper Eq. (3.23)/(3.25)) and D-wave sign convention."""
+"""Deuteron wave function: normalization (arXiv:2603.23700 Eq. (3.23)/(3.25)) and D-wave sign convention."""
 
 import numpy as np
 import pytest
@@ -32,7 +32,7 @@ def test_relativistic_norm_equals_exact_closed_form(name):
 @pytest.mark.parametrize("name,PD", [("AV18", 0.0578), ("CDBonn", 0.0486), ("Paris", 0.0578)])
 def test_norm_close_to_one_and_D_state_probability(name, PD):
     """The parametrizations are normalized to 1 within 2e-4; P_D as published
-    (AV18 5.76-5.78%, CD-Bonn 4.85%, Paris 5.77%). Paper Table III quotes
+    (AV18 5.76-5.78%, CD-Bonn 4.85%, Paris 5.77%). arXiv:2603.23700 Table III quotes
     omega_2 = 0.0576 for AV18 (from the interpolated C++ wave function)."""
     wf = DeuteronWavefunction(name)
     assert abs(wf.norm - 1) < 2e-4
@@ -41,7 +41,7 @@ def test_norm_close_to_one_and_D_state_probability(name, PD):
 
 @pytest.mark.parametrize("name", WFS)
 def test_D_wave_is_positive(name):
-    """The paper's formulas require a positive D wave in momentum space."""
+    """arXiv:2603.23700's formulas require a positive D wave in momentum space."""
     wf = DeuteronWavefunction(name)
     k = np.linspace(1e-3, 0.8, 400)
     assert np.all(wf.W(k) > 0)
@@ -52,7 +52,7 @@ def test_D_wave_is_positive(name):
 
 
 def test_S_wave_node_and_D_over_S_node_AV18():
-    """f0 = f2/sqrt2 at k ~ 0.30 GeV (paper Sec. IV D / Eq. (6.13), Table II);
+    """f0 = f2/sqrt2 at k ~ 0.30 GeV (arXiv:2603.23700 Sec. IV D / Eq. (6.13), Table II);
     S wave node at k ~ 0.4 GeV."""
     wf = DeuteronWavefunction("AV18")
     k = np.linspace(0.05, 0.6, 20001)

@@ -63,7 +63,7 @@ a way to label the photon energy: nu = (w2 - M^2 + Q^2)/2M with the proton mass)
 Cross sections are in microbarn. F1 is that of the free nucleon for p and n and of the
 **whole deuteron** for d (as returned by ``F1F2IN09``), but always F1 = M W1
 with the *nucleon* mass M (so x = Q^2/2M nu in (0, 2) for d). The inclusive layer
-(:mod:`taggedpd.inclusive`) converts the deuteron to the paper's (Part II)
+(:mod:`taggedpd.inclusive`) converts the deuteron to arXiv:2603.23700's
 convention F1^D = M_D W1 with x_D = Q^2/2M_D nu. The relation
 sigma_T = 4 pi^2 alpha F1 / (M K), with Hand's flux K = (W^2 - M^2)/2M, is the
 one built into the fit (``christy507``).

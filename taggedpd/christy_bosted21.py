@@ -66,7 +66,7 @@ Units and conventions as in :mod:`taggedpd.christy_bosted`: GeV, microbarn, deut
 F1, F2 **per nucleus** with F1 = M W1 (M the nucleon mass, x = Q^2/2M nu in (0, 2)),
 W^2 computed as for a free proton (the routines use slightly different nucleon masses
 internally, as in the FORTRAN). :mod:`taggedpd.inclusive` converts the deuteron F1 to
-the paper's (Part II) convention M_D W1 with x_D = Q^2/2M_D nu.
+arXiv:2603.23700's convention M_D W1 with x_D = Q^2/2M_D nu.
 """
 
 from __future__ import annotations

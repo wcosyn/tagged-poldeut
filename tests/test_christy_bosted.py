@@ -135,7 +135,7 @@ def test_default_model_pieces():
 def test_photoproduction_matches_fit():
     W = np.linspace(1.1, 3.0, 40)
     for t in "pnd":
-        # deuteron: Part II convention F1^D = M_D W1, the fit's native F1 is M W1 (M = PM)
+        # deuteron: arXiv:2603.23700 convention F1^D = M_D W1, the fit's native F1 is M W1 (M = PM)
         fac = M_DEUTERON / cb._PM if t == "d" else 1.0
         F1 = cb.f1f2in09(t, 0.0, W**2, binned=False)[0]
         assert np.allclose(photoproduction(W, t, "F1"), fac * F1, rtol=1e-13)
@@ -257,7 +257,7 @@ def test_quantity_conventions_2009(tgt):
              ("sigma_T", "sigma_L", "R", "F1", "F2", "F_T", "F_L", "F_L_scaling", "xF_L")}
         x, g2 = _kin(W, Q2)
         xF_L_native = (1 + g2) * F2 - 2 * x * F1          # invariant: same in both conventions
-        if tgt == "d":                                     # Part II: F1^D = M_D W1, x_D
+        if tgt == "d":                                     # arXiv:2603.23700: F1^D = M_D W1, x_D
             F1 = F1 * M_DEUTERON / cb._PM
             x, g2 = _kin(W, Q2, MT=M_DEUTERON)
             # Callan-Gross-type check of the convention: x_D F1^D = x_N F1_native

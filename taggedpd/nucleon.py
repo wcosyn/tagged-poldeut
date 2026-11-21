@@ -4,7 +4,7 @@ Design
 ------
 The tagged-DIS code only needs, for the *active* nucleon, the four functions
 
-* :math:`F_{[UU,T]n} = 2F_1`, :math:`F_{[UU,L]n} = F_2/x - 2F_1` (paper Eq. (5.10)),
+* :math:`F_{[UU,T]n} = 2F_1`, :math:`F_{[UU,L]n} = F_2/x - 2F_1` (arXiv:2603.23700 Eq. (5.10)),
 * :math:`F_{[LS_L]n} = 2 g_1`, :math:`F_{[LS_T]n} = -2\gamma_n (g_1+g_2)` (Eq. (5.24)),
 
 evaluated at the nucleon-level variables (x_n, Q^2). They are provided by an
@@ -18,7 +18,7 @@ GeV^2. Three implementations are shipped:
 :class:`SLACStructure`
     Unpolarized F2 from the SLAC/Bodek fit [Bodek et al., PRD 20 (1979) 1471]
     (port of ``NucleonStructure::f2n_b/f2p_b/bodek``), F1 from F2 and
-    R = sigma_L/sigma_T (constant R = 0.18 as in the paper, Sec. VI A, or the
+    R = sigma_L/sigma_T (constant R = 0.18 as in arXiv:2603.23700, Sec. VI A, or the
     E143 R1998 fit). No polarized functions.
 
 :class:`GRSV2000Structure`
@@ -42,12 +42,12 @@ GeV^2. Three implementations are shipped:
 
 :class:`CombinedStructure` glues an unpolarized and a polarized provider
 together; :func:`default_structure` returns SLAC (R = 0.18) + GRSV2000, the
-input used for the paper's figures.
+input used for arXiv:2603.23700's figures.
 
 Target-mass corrections
 -----------------------
 In the strict DIS limit :math:`F_1 = F_2/(2x(1+R))`. The nucqcd C++
-(and hence the paper's figures) uses :math:`F_1 = (1+\gamma^2)F_2/(2x(1+R))`
+(and hence arXiv:2603.23700's figures) uses :math:`F_1 = (1+\gamma^2)F_2/(2x(1+R))`
 with :math:`\gamma^2 = 4m^2x^2/Q^2`; this is the default here
 (``target_mass=True``), pass ``target_mass=False`` for the strict limit.
 """
@@ -107,8 +107,8 @@ class NucleonStructure:
         r"""(F_[UU,T], F_[UU,L]) of the nucleon.
 
         F_[UU,T] = 2F1 and F_[UU,L] = (1+gamma^2) F2/x - 2F1 with
-        gamma^2 = 4 m^2 x^2/Q^2 (Part I, inclusive limit), or F2/x - 2F1 in the
-        strict DIS limit (paper Eq. (5.10)) when ``self.target_mass`` is False.
+        gamma^2 = 4 m^2 x^2/Q^2 (arXiv:2603.23699, inclusive limit), or F2/x - 2F1 in the
+        strict DIS limit (arXiv:2603.23700 Eq. (5.10)) when ``self.target_mass`` is False.
         With the SLAC provider this gives F_[UU,L] = R F_[UU,T] in both cases.
         """
         F1, F2 = self.F1F2(x, Q2, nucleon)
@@ -258,10 +258,10 @@ class SLACStructure(NucleonStructure):
     Parameters
     ----------
     R : float or ``"r1998"``
-        Constant R (default 0.18, as used for the paper's figures) or the E143 fit.
+        Constant R (default 0.18, as used for arXiv:2603.23700's figures) or the E143 fit.
     target_mass : bool
         Include the factor (1+gamma^2), gamma^2 = 4 m^2 x^2/Q^2, in F1 (default
-        True, as in the nucqcd C++ that produced the paper's figures);
+        True, as in the nucqcd C++ that produced arXiv:2603.23700's figures);
         False gives the strict DIS-limit relation F1 = F2/(2x(1+R)).
     """
 
@@ -582,7 +582,7 @@ class GriddedStructure(NucleonStructure):
 
 
 def default_structure(R=0.18, target_mass=True, ww="exact"):
-    """SLAC/Bodek F2 (R = 0.18) + GRSV2000 LO g1 with WW g2: the paper's numerical input."""
+    """SLAC/Bodek F2 (R = 0.18) + GRSV2000 LO g1 with WW g2: arXiv:2603.23700's numerical input."""
     return CombinedStructure(SLACStructure(R=R, target_mass=target_mass),
                              GRSV2000Structure(ww=ww))
 

@@ -31,6 +31,10 @@ This notebook shows the Python port of the Christy–Bosted resonance-region fit
 from real photons ($Q^2=0$; `photoproduction` is an alias) through the resonance region to DIS.
 The same model objects feed the tagged-DIS code through `AsNucleonStructure` (section 8).
 
+Structure-function conventions ($F_T$, $F_L$, deuteron $F_1^D=M_DW_1$) follow W. Cosyn & C. Weiss,
+Phys. Rev. C **114**, 025201 (2026), [arXiv:2603.23699](https://arxiv.org/abs/2603.23699) and
+Phys. Rev. C **114**, 025202 (2026), [arXiv:2603.23700](https://arxiv.org/abs/2603.23700).
+
 **Original work — please cite:**
 
 * M. E. Christy and P. E. Bosted, *Empirical fit to precision inclusive electron-proton cross sections
@@ -54,9 +58,9 @@ For d it is the $\gamma^*N$ mass a free nucleon at rest would have, $W^2=M^2+2M\
 label for $\nu$, not the $\gamma^*d$ mass.
 
 * p, n: $F_1=MW_1$, $F_2=\nu W_2$, $x_N=\frac{Q^2}{2M\nu}\in(0,1]$.
-* d, as in Part II (the deuteron's own SFs, not divided by 2): $F_1^D=M_DW_1$, $F_2^D=\nu W_2$,
+* d, as in arXiv:2603.23700 (the deuteron's own SFs, not divided by 2): $F_1^D=M_DW_1$, $F_2^D=\nu W_2$,
   $x_D=\frac{Q^2}{2M_D\nu}\in(0,1]$, and Callan–Gross reads $F_2^D=2x_DF_1^D$. So $F_1^D\approx2(F_{1p}+F_{1n})$,
-  about 4× the p, n average. Part II's tagged-DIS $x=2x_D\in(0,2]$ is not used here.
+  about 4× the p, n average. arXiv:2603.23700's tagged-DIS $x=2x_D\in(0,2]$ is not used here.
 * $\sigma_{T,L}$ are virtual-photon absorption cross sections in Hand's convention. In invariants
   ($y=\frac{p_T\cdot q}{p_T\cdot l}$, lepton mass neglected):
   $\frac{d^2\sigma}{dx_T\,dQ^2}=\Gamma(\sigma_T+\epsilon\sigma_L)=\frac{2\pi\alpha^2y^2}{Q^4(1-\epsilon)}(F_T+\epsilon F_L)$, with
@@ -216,7 +220,7 @@ md(r"""
 ### Which "$F_T$", "$F_L$"? — conventions
 
 `inclusive_sf(..., quantity=...)` returns, besides $\sigma_T$ and $F_1$: `"F_T"` $=F_{[UU,T]}=2F_1$
-and `"F_L"` $=F_{[UU,L]}=\frac{(1+\gamma^2)F_2}{x}-2F_1=R\,F_T$, both in the paper's (Part I) convention;
+and `"F_L"` $=F_{[UU,L]}=\frac{(1+\gamma^2)F_2}{x}-2F_1=R\,F_T$, both in the convention of arXiv:2603.23699 and arXiv:2603.23700;
 `"F_L_scaling"` $=\frac{F_2}{x}-2F_1$, the scaling-limit relation of Eq. (5.10); `"xF_L"`
 $=(1+\gamma^2)F_2-2xF_1$, the "$F_L$" of Christy–Bosted and many DIS papers; and also `"F2"`, `"R"`,
 `"sigma_L"`. Here $x$ is the Bjorken variable of the target, $x_N=\frac{Q^2}{2M\nu}\in(0,1]$ for p, n and
@@ -454,7 +458,7 @@ md(r"""
 ## 8. Resonance region + DIS in one model, and its use in tagged DIS
 
 `resonance_dis_model()` combines Christy–Bosted in the resonance region with a DIS provider
-(default: the paper's SLAC/Bodek $F_2$ with $R=0.18$; any `NucleonStructure` works, e.g. LHAPDF, section 9),
+(default: arXiv:2603.23700's SLAC/Bodek $F_2$ with $R=0.18$; any `NucleonStructure` works, e.g. LHAPDF, section 9),
 blended linearly over $2.5<W<3$ GeV where both apply, and the DIS provider beyond the
 Christy–Bosted range. `AsNucleonStructure(model)` turns any such $(W,Q^2)$ model into an $(x,Q^2)$
 provider for `TaggedDIS`; polarized input is added with `CombinedStructure`. The defaults of
@@ -500,10 +504,10 @@ fig.tight_layout(); save(fig, 'pp_tagged_resonance')
 md(r"""
 In DIS kinematics (small $x$, large $W_n$) the two give identical results by construction. Where
 the active neutron's $W_n$ falls in the resonance region (large $x$ at moderate $Q^2$), the
-tagged cross section differs from the SLAC/Bodek input used for the paper's figures by tens of
+tagged cross section differs from the SLAC/Bodek input used for arXiv:2603.23700's figures by tens of
 percent, and up to a factor ~2 at the $\Delta$ ($x\approx0.8$ at $Q^2=2$ GeV²). The reason is that
 the Bodek fit's neutron resonances are much weaker and broader than Christy–Bosted's. This
-matters only for kinematics where the paper's DIS treatment is not intended to apply anyway.
+matters only for kinematics where arXiv:2603.23700's DIS treatment is not intended to apply anyway.
 """)
 
 # ---------------------------------------------------------------------------
@@ -600,7 +604,7 @@ if HAVE_LHAPDF:
 code(r"""
 # tagged DIS on the deuteron: reduced cross section and vector asymmetry A^V, LHAPDF vs default input
 if HAVE_LHAPDF:
-    td_def = TaggedDIS('AV18')                                    # SLAC + GRSV2000 (paper)
+    td_def = TaggedDIS('AV18')                                    # SLAC + GRSV2000 (arXiv:2603.23700)
     td_lh = TaggedDIS('AV18', structure=GriddedStructure(lh))    # CT18LO + NNPDFpol11_100
     x = np.linspace(0.05, 0.6, 200)
     fig, axs = plt.subplots(1, 2, figsize=(12, 4))
