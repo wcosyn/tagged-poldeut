@@ -269,9 +269,9 @@ docstring.
 
 | Question | Decision | Rationale |
 |---|---|---|
-| Normalization of F_T and F_L | The paper's: F_T = 2F1, F_L = (1+γ²)F2/x − 2F1 | Matches `NucleonStructure.FT_FL` and the tagged-DIS code. The x-weighted F_L that Christy–Bosted and SIMC use is available as `"xF_L"` |
+| Normalization of F_T and F_L | The paper's: F_T = 2F1, F_L = (1+γ²)F2/x_T − 2F1, with x_T = x_N for p, n and x_D for d (see the deuteron convention below) | Matches `NucleonStructure.FT_FL` and the tagged-DIS code. The x-weighted F_L that Christy–Bosted and SIMC use is available as `"xF_L"` |
 | "With or without the scaling limit" | `"F_L"` is the exact relation, equal to R·F_T; `"F_L_scaling"` = F2/x − 2F1 is Eq. (5.10) | In the resonance region γ² = Q²/ν² is not small, and the scaling form can turn negative: −0.43 vs +0.056 at the Δ for Q² = 1 GeV² |
-| Mass in x, ν and γ | The mass each fit uses itself (`kin_mass`): 2009, 0.93828 for p, n and d; 2021, 0.938272 for p and n and the average nucleon mass for d | With this choice F_L = R·F_T holds to rounding against each fit's own R, and the deuteron `xF_L` reproduces RESCSD's FL |
+| Mass in ν and γ | The mass each fit uses itself (`kin_mass`): 2009, 0.93828 for p, n and d; 2021, 0.938272 for p and n and the average nucleon mass for d. It labels ν = (W² − M² + Q²)/2M, hence γ² = Q²/ν². *Since 2026-11-21* x uses the target mass `sf_mass` instead: `kin_mass` for p, n, M_D for d (x_D) | With this choice F_L = R·F_T holds to rounding against each fit's own R, and the deuteron `xF_L` reproduces RESCSD's FL (xF_L is invariant under the deuteron convention change) |
 | Q² = 0 | F2, R, σ_L and all F_L variants are exactly 0 | These are the limits; x = 0 there |
 | Models that provide only σ_T | F_T works everywhere; F2- and F_L-type quantities only at Q² = 0, otherwise `NotImplementedError` | Avoids silently inventing an R for a future Regge model |
 | `Blend` | Interpolates each quantity separately | Simple. The blended R is then not exactly σ_L/σ_T of the blended cross sections; this is documented |
@@ -338,6 +338,34 @@ proton and ~13% for the neutron at Q² = 1.
 **Open.** No model covers real photons above W ≈ 3 GeV, or Q² < 1 above the CB range; these
 return NaN by default. That region is reserved for a Regge-type model.
 
+### Deuteron inclusive SFs in the Part II convention (2026-11-21)
+
+**Motivation.** The inclusive layer returned the Fortran fits' deuteron convention,
+F1 = M W1 with the nucleon mass and x_N = Q²/(2Mν) ∈ (0, 2]. Part II writes the deuteron
+structure functions with the deuteron as the target, so the two did not match.
+
+| Question | Decision | Rationale |
+|---|---|---|
+| Deuteron F1 in `inclusive.py` | F1^D = M_D W1, paired with x_D = Q²/(2M_D ν) = Q²/(2p_D·q) ∈ (0, 1]; Callan–Gross F2^D = 2x_D F1^D | Part II convention; the deuteron is the target, "per nucleus" means the deuteron's own SFs, not divided by 2 |
+| What changes | F1, F_T, F_L, F_L_scaling for d are multiplied by M_D/M. σ_T, σ_L, R, F2, x F1 and xF_L are unchanged. p, n are unchanged | Only the mass in F1 = M_T W1 and in x changes; W1, W2 themselves do not |
+| Low-level ports (`christy_bosted`, `christy_bosted21`) | Keep the Fortran convention (F1 = M W1, x_N ∈ (0, 2]); docstrings now say so ("F1 / 2" for `resd`, `mec_deuteron`) | They are regression ports of the Fortran and are tested against it bit for bit |
+| Implementation | `InclusiveModel.sf_mass(target)` (M_D for d, `kin_mass` otherwise) sets x_T; `_sf_factor` converts F1 in `F1`/`sigma_T` and in `ChristyBosted.F1F2R`, `ChristyBosted2021.F1F2`. `ChristyBosted.sigma_T` uses the native F1 directly | A user model for d that implements `sigma_T` gets the convention automatically; one that implements `F1` must return M_D W1 |
+| Hand flux for d | Keep the free-nucleon K = (W² − M²)/2M = ν − Q²/2M, not K_D = ν − Q²/2M_D | Used by the fits and the data they were fitted to. Γσ_T, W1, W2, R and all F's are independent of the choice; σ_T(K_D) = σ_T K/K_D (equal at Q² = 0, ≈0.72 at Q² = 0.5, W = 1.232; ≈0.73 at Q² = 1, W = 1.5) |
+| Relation to tagged DIS | The Part II variable x = 2x_D ∈ (0, 2] (used by `TaggedDIS`) is *not* used in the inclusive layer, which labels d by x_D | Avoids mixing x_N, x_D and x; all three are spelled out in the README variables table |
+
+In the scaling limit F2^D ≈ F2p + F2n and F1^D ≈ 2(F1p + F1n): the F1-type deuteron
+functions are about 4× the nucleon average, F2 about 2×.
+
+**Docs.** README, the `inclusive` module docstring and both notebooks got an explicit
+variables table (ν, the W label, x_N / x_D / Part II x with their ranges), Hand's flux and
+Γ written in invariants, the real-photon limit, the K vs K_D discussion, and an explanation
+of the dip-region (MEC) term. Formulas in the README are now LaTeX.
+
+**Checks.** Tests updated for the convention: the deuteron F1 equals (M_D/M) times the
+Fortran F1 (2009 with M = 0.93828, 2021 with the average nucleon mass) to 10⁻¹³;
+x_D F1^D = x_N F1^Fortran; xF_L is the same in both conventions; all identities of the
+conventions table hold with x_T = x_D. Full suite: 115 passed.
+
 ## Known limitations and open items
 
 - Impulse approximation only: no FSI, so the T-odd structures are zero. The
@@ -361,7 +389,7 @@ return NaN by default. That region is reserved for a Regge-type model.
 ## Environment
 
 ```bash
-cd ~/Git/tagged-poldeut
+cd ~/Git/poldeut          # clone of github.com/wcosyn/tagged-poldeut
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]" jupyterlab nbconvert ipykernel matplotlib
 python -m ipykernel install --user --name taggedpd --display-name "Python (taggedpd)"
