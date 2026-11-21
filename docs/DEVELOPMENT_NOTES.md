@@ -157,12 +157,6 @@ Still open:
 - Post the arXiv replacements, and then update the references here that say "posted text".
 - The g2 study figure (`tagdeut_ALL_g2.py`, `ALL_g2_2.pdf`) is not in the papers and was not
   regenerated.
-- `cm-super` is now installed; matplotlib `usetex` figures save again.
-- nucqcd was reinstalled into `lib/` and `bin/` after the OS upgrade (the old
-  install linked GSL 27, which is gone). `GPD_Partons` and `progs/GPD` do not build:
-  the installed PARTONS headers need SFML, and `diDVCS_gen_gridonly` lacks the ROOT
-  include path. `lib/libGPD.so` and `bin/conv_T_test` are therefore still the old,
-  non-loading builds.
 
 ## Photoproduction branch (2026-11-19)
 
