@@ -366,6 +366,24 @@ Fortran F1 (2009 with M = 0.93828, 2021 with the average nucleon mass) to 10⁻�
 x_D F1^D = x_N F1^Fortran; xF_L is the same in both conventions; all identities of the
 conventions table hold with x_T = x_D. Full suite: 115 passed.
 
+**Clarifications of W, ν and K (2026-11-21, docs only, no code change).** Questions from
+W. Cosyn showed that the first version of the docs was ambiguous. They now state:
+
+- **All variables are Lorentz invariants.** They are described in the *target rest frame*,
+  not the "lab", and can be computed in any frame, collider kinematics included.
+- **ν = p_T·q/M_T is one quantity for all targets.** It is the photon energy in the target
+  rest frame. p·q/M and p_D·q/M_D are just its invariant forms for a nucleon or a
+  deuteron target. In a collider, ν is **not** the photon energy in the collider frame;
+  compute p_D·q/M_D from the four-vectors.
+- **W for the deuteron is not the mass of any physical system**, only a way of
+  specifying ν. The earlier docs called it a "label", which was unclear. W² = (p_N + q)² for a free nucleon moving with the
+  deuteron, p_N = (M/M_D) p_D, i.e. at rest in the deuteron rest frame, which gives
+  W² = M² + 2Mν − Q². It is not the γ*d mass W_D, nor that of a bound nucleon.
+- **K = (W² − M²)/2M = ν − Q²/2M is the same for p, n and d** at given (W, Q²), because W,
+  ν and M are the same. The README expression K = p_D·q/M_D − Q²/2M is this same K written
+  in deuteron invariants. It is not a different definition. The alternative K_D (with M_D
+  in the Q² term) is not used; see the Hand-flux row above.
+
 ## Known limitations and open items
 
 - Impulse approximation only: no FSI, so the T-odd structures are zero. The
