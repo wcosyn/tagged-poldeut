@@ -246,7 +246,7 @@ choice of $K$.
 | `"sigma_T"` (default) | $\frac{4\pi^2\alpha W_1}{K}$ | $\frac{4\pi^2\alpha W_1}{K}$ | Hand convention, free-nucleon $K$ |
 | `"sigma_L"` | $R\,\sigma_T$ | $R\,\sigma_T$ | |
 | `"R"` | $\frac{\sigma_L}{\sigma_T}=\frac{F_L}{F_T}$ | same | |
-| `"F1"` | $F_1=MW_1=\frac{MK\sigma_T}{4\pi^2\alpha}$ | $F_1^D=M_DW_1=\frac{M_D}{M}F_1^{\rm Fortran}$ | p, n: the fits' native $F_1$ |
+| `"F1"` | $F_1=MW_1=\frac{MK\sigma_T}{4\pi^2\alpha}$ | $F_1^D=M_DW_1=\frac{M_D}{M}F_1^{d,\rm Fortran}$ | p, n: the fits' native $F_1$. d: $F_1^{d,\rm Fortran}=MW_1$ is what the fits return for the whole deuteron (nucleon mass, not divided by 2), see below |
 | `"F2"` | $\nu W_2$ | $F_2^D=\nu W_2$ | |
 | `"F_T"` | $F_{[UU,T]}=2F_1$ | $2F_1^D$ | convention of arXiv:2603.23699 and arXiv:2603.23700 |
 | `"F_L"` | $F_{[UU,L]}=\frac{(1+\gamma^2)F_2}{x_N}-2F_1=R\,F_T$ | $\frac{(1+\gamma^2)F_2^D}{x_D}-2F_1^D=R\,F_T$ | exact relation, including target mass |
@@ -275,12 +275,16 @@ $W_1$, $W_2$, and $R^D$ is the $W_1$-weighted average of $R^p$, $R^n$. The Chris
 deuteron fit adds Fermi smearing and the MEC term on top of this sum. Its $W_1^D/(W_1^p+W_1^n)$
 is 0.97–0.99 for $W$ = 2–2.8 GeV at $Q^2$ = 0.5–5 GeV², and 0.65–0.85 at the Δ
 ($W$ = 1.23 GeV), where smearing lowers and broadens the peak. $W_2$ behaves the same way.
-In the Fortran convention ($F_1=MW_1$ for d too) the relation is simply $F_1^D\approx F_1^p+F_1^n$.
+In the Fortran convention ($F_1=MW_1$ for d too) the relation is simply $F_1^{d,\rm Fortran}\approx F_1^p+F_1^n$.
 
 The low-level Fortran ports (`christy_bosted`, `christy_bosted21`) use a different
-convention for d. Their deuteron is also the whole deuteron, but $F_1=MW_1$ with the
-nucleon mass, paired with $x_N=\frac{Q^2}{2M\nu}\in(0,2]$. So $F_1^D=\frac{M_D}{M}F_1^{\rm Fortran}$,
-and $F_2$, $R$, $\gamma$ and $xF_1$ are the same in both conventions.
+convention for d. $F_1^{d,\rm Fortran}$ denotes what they return for the deuteron, e.g.
+`christy_bosted.f1f2in09("d", Q2, W**2)[0]` (the Fortran `F1F2IN09`/`F1F2IN21` output). It is
+the whole deuteron, not divided by 2, but with $F_1=MW_1$ (nucleon mass), paired with
+$x_N=\frac{Q^2}{2M\nu}\in(0,2]$. So $F_1^D=\frac{M_D}{M}F_1^{d,\rm Fortran}$, while $F_2$, $R$, $\gamma$
+and $xF_1$ are the same in both conventions. Internally the Fortran smears the nucleon average
+(`resd`), which is $\frac{F_1^{d,\rm Fortran}}{2}\approx\bar F_1=\frac{F_{1p}+F_{1n}}{2}$; the
+inclusive notebook (section 1) lists all three normalizations.
 
 Elsewhere one finds $F_T=2xF_1$ with $F_L$ = `"xF_L"`, so that $(1+\gamma^2)F_2=F_T+F_L$.
 Both functions are then $x$ times arXiv:2603.23700's. In the resonance region $\gamma^2$ is not small
