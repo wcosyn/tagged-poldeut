@@ -11,6 +11,7 @@ import os
 import numpy as np
 import pytest
 
+from taggedpd.constants import M_DEUTERON
 from taggedpd import christy_bosted as cb
 from taggedpd.inclusive import (BelowThreshold, Blend, ChristyBosted, PhotoabsorptionModel,
                                       Piecewise, PION_THRESHOLD, default_photoabsorption,
@@ -134,8 +135,10 @@ def test_default_model_pieces():
 def test_photoproduction_matches_fit():
     W = np.linspace(1.1, 3.0, 40)
     for t in "pnd":
-        F1 = photoproduction(W, t, "F1")
-        assert np.allclose(F1, cb.f1f2in09(t, 0.0, W**2, binned=False)[0], rtol=1e-13)
+        # deuteron: Part II convention F1^D = M_D W1, the fit's native F1 is M W1 (M = PM)
+        fac = M_DEUTERON / cb._PM if t == "d" else 1.0
+        F1 = cb.f1f2in09(t, 0.0, W**2, binned=False)[0]
+        assert np.allclose(photoproduction(W, t, "F1"), fac * F1, rtol=1e-13)
         assert np.allclose(photoproduction(W, t), cb.sigmaT_from_F1(F1, W**2), rtol=1e-13)
     # proton sigma_T is directly the fit's sigma_T
     assert np.allclose(photoproduction(W, "p"), cb.christy507(W**2, 0.0)[2], rtol=1e-12)
@@ -239,9 +242,10 @@ def test_structure_provider():
 # ---------------------------------------------------------------------------
 # structure-function conventions (quantity=)
 # ---------------------------------------------------------------------------
-def _kin(W, Q2, M=cb._PM):
+def _kin(W, Q2, M=cb._PM, MT=None):
+    """x = Q^2/(2 M_T nu) (M_T = M for p, n; M_D for d, i.e. x_D), gamma^2 = Q^2/nu^2."""
     nu = (W**2 - M**2 + Q2) / (2 * M)
-    return Q2 / (2 * M * nu), Q2 / nu**2      # x, gamma^2
+    return Q2 / (2 * (MT or M) * nu), Q2 / nu**2
 
 
 @pytest.mark.parametrize("tgt", ["p", "n", "d"])
@@ -252,6 +256,13 @@ def test_quantity_conventions_2009(tgt):
         q = {k: photoproduction(W, tgt, k, Q2=Q2) for k in
              ("sigma_T", "sigma_L", "R", "F1", "F2", "F_T", "F_L", "F_L_scaling", "xF_L")}
         x, g2 = _kin(W, Q2)
+        xF_L_native = (1 + g2) * F2 - 2 * x * F1          # invariant: same in both conventions
+        if tgt == "d":                                     # Part II: F1^D = M_D W1, x_D
+            F1 = F1 * M_DEUTERON / cb._PM
+            x, g2 = _kin(W, Q2, MT=M_DEUTERON)
+            # Callan-Gross-type check of the convention: x_D F1^D = x_N F1_native
+            assert np.allclose(x * q["F1"], _kin(W, Q2)[0] * cb.f1f2in09(tgt, Q2, W**2, binned=False)[0], rtol=1e-12)
+        assert np.allclose(q["xF_L"], xF_L_native, rtol=1e-10, atol=1e-14)
         assert np.allclose(q["F1"], F1, rtol=1e-13) and np.allclose(q["F2"], F2, rtol=1e-13)
         assert np.allclose(q["F_T"], 2 * F1, rtol=1e-13)
         # F_L = (1+g^2)F2/x - 2F1 = R F_T, with the fit's own R

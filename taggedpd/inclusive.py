@@ -78,59 +78,104 @@ is the overlap region and whose ``sigma_T`` interpolates between the two (see
 
 Conventions
 -----------
-* GeV, cross sections in **microbarn**.
-* ``W`` is the photon-nucleon c.m. energy. For the deuteron, ``W`` is (as in the
-  Christy-Bosted code) the invariant mass *calculated as if the photon scattered
-  on a free proton at rest*, i.e. a label for the photon lab energy
-  nu = (W^2 - M^2 + Q^2)/2M; use :func:`W_from_nu` / :func:`nu_from_W`.
-* Deuteron results are **per nucleus** (divide by 2 for per nucleon).
-* sigma_T = 4 pi^2 alpha F1/(M K) with Hand's flux K = (W^2 - M^2)/(2M) and M the
-  proton mass of the fit, i.e. sigma_T = 8 pi^2 alpha F1/(W^2 - M^2). At
-  Q^2 = 0, K equals the photon energy, so sigma_T is the real-photon total
-  absorption cross section; sigma_L and F2 vanish there.
-* The deuteron result is the *inelastic* (pion-production) part only:
-  photodisintegration gamma d -> p n is not included.
+GeV, cross sections in **microbarn** (alpha = 1/137.036, 2021 fit 1/137.03599;
+1 GeV^-2 = 389.4 microbarn). The deuteron result is the *inelastic* (pion-production)
+part only: photodisintegration gamma d -> p n is not included.
+
+Targets and kinematic variables. The target is at rest in the lab: a free nucleon for
+"p", "n"; the deuteron for "d", whose structure functions are the deuteron's own (Part II),
+not divided by 2 ("per nucleus"). Bound nucleons move (Fermi motion) and each has its
+own p_N.q and gamma*N mass; the deuteron fits integrate over that internally. None of
+the variables below refers to a bound nucleon.
+
+=========== ================================================================ =========
+symbol      meaning                                                          range
+=========== ================================================================ =========
+M           the fit's nucleon mass (:meth:`InclusiveModel.kin_mass`): 2009
+            0.93828 (flux 0.9382727); 2021 0.938272 (p, n), average (d)
+M_T         target mass: M for p, n; M_D (:data:`~taggedpd.constants.M_DEUTERON`)
+            for d (:meth:`InclusiveModel.sf_mass`)
+nu          lab photon energy = p_T.q/M_T (p_T: free nucleon or deuteron at
+            rest); nu = (W^2 - M^2 + Q^2)/2M
+W           input. p, n: gamma*N invariant mass. d: the gamma*N mass a *free
+            nucleon at rest* would have at this nu, W^2 = M^2 + 2 M nu - Q^2,
+            only a label for nu (as in the fits); NOT the gamma*d mass
+            W_D^2 = M_D^2 + 2 M_D nu - Q^2, nor that of a bound nucleon.
+            :func:`W_from_nu` / :func:`nu_from_W` convert.
+x_N         Q^2/(2 M nu), free-nucleon Bjorken variable, used for p, n        (0, 1]
+x_D         Q^2/(2 M_D nu) = Q^2/(2 p_D.q), deuteron Bjorken variable,       (0, 1]
+            used for d
+x (Part II) 2 x_D, the tagged-DIS variable of :mod:`taggedpd.crosssection`; (0, 2]
+            NOT used here
+gamma^2     Q^2/nu^2 = 4 M^2 x_N^2/Q^2 = 4 M_D^2 x_D^2/Q^2
+K           Hand's equivalent photon energy for a free nucleon,
+            (W^2 - M^2)/2M = nu - Q^2/2M, used for all targets, d included
+=========== ================================================================ =========
+
+W1, W2 are the hadronic tensor of the target (free nucleon for p, n; deuteron for d).
+Below, x_T = x_N for p, n and x_T = x_D for d.
+
+sigma_T, sigma_L are virtual-photon absorption cross sections in Hand's convention,
+*not* measurable photoproduction cross sections. They are defined by writing the
+electron cross section as a flux Gamma times sigma_T + eps sigma_L. In invariants
+(l, p_T lepton and target momenta, lepton mass neglected)::
+
+    d^2 sigma/(dx_T dQ^2) = Gamma (sigma_T + eps sigma_L)
+                          = 2 pi alpha^2 y^2/(Q^4 (1 - eps)) (F_T + eps F_L),
+    Gamma = alpha M_T K y^2/(pi Q^4 (1 - eps)),
+    sigma_{T,L} = 2 pi^2 alpha F_{T,L}/(M_T K),
+    y = p_T.q/p_T.l,  eps = (1 - y - gamma^2 y^2/4)/(1 - y + y^2/2 + gamma^2 y^2/4),
+    K = (W^2 - M^2)/2M = nu - Q^2/2M  (W^2 = (p+q)^2 for a free nucleon; the label for d).
+
+K cancels in Gamma sigma: only F_T, F_L (W1, W2) are physical. For d this is Part II's
+d sigma (dx/2 = dx_D). For real photons (Q^2 -> 0): K/nu -> 1, gamma^2 -> 0,
+sigma_L -> 0, and sigma_T is the measured total photoabsorption cross section. At
+Q^2 > 0 the normalization of sigma_T depends on the choice of K (Gamma sigma_T does not).
 
 Structure-function conventions (``quantity=``)
 ----------------------------------------------
-Conventions for "F_T" and "F_L" differ between papers by factors of x and 2, so
-every option is defined explicitly here. All are built from the model's own F1, F2
-and the nucleon mass M that the model uses kinematically (:meth:`InclusiveModel.kin_mass`):
-nu = (W^2 - M^2 + Q^2)/2M, x = Q^2/(2 M nu), gamma^2 = 4 M^2 x^2/Q^2 = Q^2/nu^2.
-
-=============== ========================================== ==================================
-quantity        definition                                  remarks
-=============== ========================================== ==================================
-"sigma_T"       transverse cross section [microbarn]         Hand flux K = (W^2 - M^2)/2M
+=============== ============================================ ==================================
+quantity        definition                                    remarks
+=============== ============================================ ==================================
+"sigma_T"       4 pi^2 alpha W1/K [microbarn]                  Hand, free-nucleon K (above)
 "sigma_L"       R sigma_T [microbarn]
 "R"             sigma_L/sigma_T = F_L/F_T
-"F1"            sigma_T (W^2 - M^2)/(8 pi^2 alpha)           fits' native output
-"F2"            F2                                           0 at Q^2 = 0
-"F_T"           F_[UU,T] = 2 F1                              paper / Part I convention
-"F_L"           F_[UU,L] = (1 + gamma^2) F2/x - 2 F1         exact (target-mass) relation;
-                = R F_T                                      Part I inclusive limit
-"F_L_scaling"   F2/x - 2 F1                                  scaling-limit relation
-                = F_T (R - gamma^2)/(1 + gamma^2)            (gamma -> 0), paper Eq. (5.10)
-"xF_L"          (1 + gamma^2) F2 - 2 x F1 = 2 x F1 R         the "F_L" of Christy-Bosted /
-                = x F_[UU,L]                                 SIMC and of many DIS papers
-=============== ========================================== ==================================
+"F1"            M_T W1 = (M_T/M) sigma_T (W^2 - M^2)/(8 pi^2 alpha)  p, n: the fits' native F1
+"F2"            nu W2                                          0 at Q^2 = 0
+"F_T"           F_[UU,T] = 2 F1                                paper (Parts I, II) convention
+"F_L"           F_[UU,L] = (1 + gamma^2) F2/x_T - 2 F1         exact (target-mass) relation
+                = R F_T
+"F_L_scaling"   F2/x_T - 2 F1                                  scaling limit (gamma -> 0),
+                = F_T (R - gamma^2)/(1 + gamma^2)              paper Eq. (5.10)
+"xF_L"          (1 + gamma^2) F2 - 2 x_T F1 = x_T F_[UU,L]     the "F_L" of Christy-Bosted /
+                                                               SIMC and of many DIS papers
+=============== ============================================ ==================================
 
 Notes:
 
-* F_T and F_L follow the paper (dimension of F1). Elsewhere one also finds
-  F_T = 2xF1 with F_L = (1+gamma^2)F2 - 2xF1 (= "xF_L" here), such that
-  (1+gamma^2) F2 = F_T + F_L. That convention is x times the one used here.
-* "F_L_scaling" is what the paper's Eq. (5.10) gives with F1, F2 as input; it
-  equals F_L only when gamma^2 << 1. In the resonance region at low Q^2,
-  gamma^2 = Q^2/nu^2 is *not* small (e.g. ~0.5 at Q^2 = 1, W = 1.5), and
-  F_L_scaling can even be negative where gamma^2 > R. Use "F_L" for the
-  physical longitudinal structure function.
+* Deuteron (Part II): F1^D = M_D W1, F2^D = nu W2, Callan-Gross F2^D = 2 x_D F1^D. In the
+  scaling limit F2^D ~ F2p + F2n and F1^D ~ 2 (F1p + F1n): the F1-type deuteron functions
+  are about **4x** the nucleon average, F2 about 2x.
+* The low-level ports (:mod:`taggedpd.christy_bosted`, :mod:`taggedpd.christy_bosted21`)
+  keep the Fortran convention for d: per nucleus, but F1 = M W1 with x_N in (0, 2], i.e.
+  F1^D = (M_D/M) F1_Fortran. F2, R, gamma, x F1 and "xF_L" agree between the two.
+* Deuteron flux: Hand's K could be defined with the deuteron as target,
+  K_D = (W_D^2 - M_D^2)/2M_D = nu - Q^2/2M_D. The fits (and this module) use the
+  free-nucleon K for d too. Then sigma_T(K_D) = sigma_T K/K_D: equal at Q^2 = 0, ~0.73 at
+  Q^2 = 1, W = 1.5. W1, W2, R and all F's are independent of this choice.
+* F_T and F_L have the dimension of F1. Elsewhere one also finds F_T = 2xF1 with
+  F_L = (1+gamma^2)F2 - 2xF1 (= "xF_L" here), such that (1+gamma^2) F2 = F_T + F_L:
+  x times the convention used here.
+* "F_L_scaling" equals F_L only when gamma^2 << 1. In the resonance region at low Q^2,
+  gamma^2 is *not* small (e.g. ~0.5 at Q^2 = 1, W = 1.5), and F_L_scaling can even be
+  negative where gamma^2 > R. Use "F_L" for the physical longitudinal structure function.
 * At Q^2 = 0 all F_L-type quantities, F2, R and sigma_L are returned as exactly 0
   (their limits; x = 0 there). Models that only provide sigma_T/F1 (e.g. a
   user-supplied Regge form) give F2- and F_L-type quantities only at Q^2 = 0 and
   raise ``NotImplementedError`` otherwise.
-* Deuteron: per nucleus; x and gamma use the fit's nucleon mass (2009: 0.93828;
-  2021: the average nucleon mass), i.e. x is per nucleon, 0 < x < 2.
+* Model classes: ``F1``/``F1F2`` of an :class:`InclusiveModel` return the convention
+  above (for d: M_D W1). A user model for d that implements ``sigma_T`` gets this
+  automatically; one that implements ``F1`` must return M_D W1.
 """
 
 from __future__ import annotations
@@ -142,7 +187,7 @@ import numpy as np
 from . import christy_bosted as cb
 from . import christy_bosted21 as cb21
 
-from .constants import M_NEUTRON, M_PROTON
+from .constants import M_DEUTERON, M_NEUTRON, M_PROTON
 from .nucleon import NucleonStructure
 
 __all__ = ["InclusiveModel", "PhotoabsorptionModel", "ChristyBosted", "ChristyBosted2021",
@@ -176,6 +221,11 @@ def _norm_target(target):
 # ===========================================================================
 # interface
 # ===========================================================================
+def _sf_factor(target, M):
+    """F1 = M_T W1 relative to M W1: 1 for p, n; M_D/M for d (Part II convention)."""
+    return M_DEUTERON / M if _norm_target(target) == "d" else 1.0
+
+
 class InclusiveModel:
     """Interface for a parametrization of sigma_T (equivalently F1) at given (W, Q^2).
 
@@ -195,22 +245,29 @@ class InclusiveModel:
         raise NotImplementedError
 
     def sigma_T(self, W, Q2, target):
-        """Transverse cross section [microbarn]."""
+        """Transverse cross section [microbarn] (per nucleus for d)."""
         if type(self).F1 is InclusiveModel.F1:
             raise NotImplementedError(f"{type(self).__name__} implements neither sigma_T nor F1")
         W = np.asarray(W, float)
-        return cb.sigmaT_from_F1(self.F1(W, Q2, target), W * W, self.flux_mass)
+        F1 = self.F1(W, Q2, target) / _sf_factor(target, self.flux_mass)
+        return cb.sigmaT_from_F1(F1, W * W, self.flux_mass)
 
     def F1(self, W, Q2, target):
-        """F1 (per nucleon for p, n; per nucleus for d)."""
+        """F1 = M_T W1 of the target: free nucleon for p, n (M_T = M); deuteron for d (M_T = M_D, Part II)."""
         if type(self).sigma_T is InclusiveModel.sigma_T:
             raise NotImplementedError(f"{type(self).__name__} implements neither sigma_T nor F1")
         W = np.asarray(W, float)
-        return cb.F1_from_sigmaT(self.sigma_T(W, Q2, target), W * W, self.flux_mass)
+        F1 = cb.F1_from_sigmaT(self.sigma_T(W, Q2, target), W * W, self.flux_mass)
+        return F1 * _sf_factor(target, self.flux_mass)
 
     def kin_mass(self, target):
-        """Nucleon mass M the model uses for nu = (W^2 - M^2 + Q^2)/2M, x = Q^2/2M nu, gamma^2 = Q^2/nu^2."""
+        """Nucleon mass M the model uses to label the photon energy: nu = (W^2 - M^2 + Q^2)/2M
+        (also for d, where W is the free-nucleon label), gamma^2 = Q^2/nu^2."""
         return _M
+
+    def sf_mass(self, target):
+        """Target mass M_T in F1 = M_T W1 and x = Q^2/(2 M_T nu): kin_mass for p, n; M_D for d."""
+        return M_DEUTERON if _norm_target(target) == "d" else self.kin_mass(target)
 
     def F1F2(self, W, Q2, target):
         """(F1, F2). Default for models that only provide sigma_T/F1: F2 is known only at
@@ -240,7 +297,7 @@ class InclusiveModel:
         pos = Q2 > 0
         with np.errstate(divide="ignore", invalid="ignore"):
             nu = (W * W - M * M + Q2) / (2.0 * M)
-            x = Q2 / (2.0 * M * nu)
+            x = Q2 / (2.0 * self.sf_mass(t) * nu)        # x_T: x_N for p, n; x_D for d
             g2 = Q2 / nu**2
             FL = np.where(pos, (1.0 + g2) * F2 / x - 2.0 * F1, 0.0)
             if quantity == "F_L":
@@ -264,15 +321,15 @@ class InclusiveModel:
 #: quantities :func:`inclusive_sf` / :meth:`InclusiveModel.evaluate` can return.
 #: See the module docstring, "Structure-function conventions".
 QUANTITIES = {
-    "sigma_T": "transverse cross section [microbarn] (Hand flux)",
+    "sigma_T": "virtual-photon transverse cross section [microbarn] = 4 pi^2 alpha W1/K (Hand, free-nucleon K = nu - Q^2/2M); real-photon cross section at Q^2 = 0",
     "sigma_L": "longitudinal cross section [microbarn] = R sigma_T",
     "R": "sigma_L / sigma_T = F_L / F_T",
-    "F1": "F1 = sigma_T (W^2 - M^2) / (8 pi^2 alpha)",
-    "F2": "F2",
-    "F_T": "F_[UU,T] = 2 F1  (paper / Part I convention)",
-    "F_L": "F_[UU,L] = (1 + gamma^2) F2 / x - 2 F1 = R F_T  (exact, with gamma^2 = 4M^2x^2/Q^2)",
-    "F_L_scaling": "F2 / x - 2 F1  (scaling-limit relation gamma -> 0, paper Eq. (5.10))",
-    "xF_L": "x F_[UU,L] = (1 + gamma^2) F2 - 2 x F1 = 2 x F1 R  (the 'F_L' of Christy-Bosted / SIMC, "
+    "F1": "F1 = M_T W1 = (M_T/M) sigma_T (W^2 - M^2) / (8 pi^2 alpha)  (M_T = M_D for d: per nucleus, x_D)",
+    "F2": "F2 = nu W2",
+    "F_T": "F_[UU,T] = 2 F1  (paper, Parts I and II)",
+    "F_L": "F_[UU,L] = (1 + gamma^2) F2 / x_T - 2 F1 = R F_T  (exact; x_T = x_N for p, n, x_D for d; gamma^2 = Q^2/nu^2)",
+    "F_L_scaling": "F2 / x_T - 2 F1  (scaling-limit relation gamma -> 0, paper Eq. (5.10))",
+    "xF_L": "x_T F_[UU,L] = (1 + gamma^2) F2 - 2 x_T F1 = 2 x_T F1 R  (the 'F_L' of Christy-Bosted / SIMC, "
             "of many DIS papers)",
 }
 
@@ -320,13 +377,20 @@ class ChristyBosted(InclusiveModel):
         return (W >= lo) & (W <= hi) & (Q2 >= 0) & (Q2 <= self.Q2_max[t])
 
     def F1(self, W, Q2, target):
-        W = np.asarray(W, float)
-        return cb.f1f2in09(_norm_target(target), Q2, W * W, binned=self.binned)[0]
+        return self.F1F2R(W, Q2, target)[0]
 
     def F1F2R(self, W, Q2, target):
-        """(F1, F2, R) as returned by F1F2IN09."""
+        """(F1, F2, R) of F1F2IN09; for d, F1 is converted to the Part II convention M_D W1."""
         W = np.asarray(W, float)
-        return cb.f1f2in09(_norm_target(target), Q2, W * W, binned=self.binned)
+        t = _norm_target(target)
+        F1, F2, R = cb.f1f2in09(t, Q2, W * W, binned=self.binned)
+        return F1 * _sf_factor(t, cb._PM), F2, R
+
+    def sigma_T(self, W, Q2, target):
+        """sigma_T [microbarn] from the fit's native F1 (Hand flux with the fit's proton mass)."""
+        W = np.asarray(W, float)
+        F1 = cb.f1f2in09(_norm_target(target), Q2, W * W, binned=self.binned)[0]
+        return cb.sigmaT_from_F1(F1, W * W, self.flux_mass)
 
     def F1F2(self, W, Q2, target):
         return self.F1F2R(W, Q2, target)[:2]
@@ -378,12 +442,14 @@ class ChristyBosted2021(InclusiveModel):
         return (W >= self.W_min[t]) & (W * W <= self.W2_max) & (Q2 >= 0) & (Q2 <= self.Q2_max)
 
     def F1(self, W, Q2, target):
-        W = np.asarray(W, float)
-        return cb21.f1f2in21(_norm_target(target), Q2, W * W)[0]
+        return self.F1F2(W, Q2, target)[0]
 
     def F1F2(self, W, Q2, target):
+        """(F1, F2) of F1F2IN21; for d, F1 is converted to the Part II convention M_D W1."""
         W = np.asarray(W, float)
-        return cb21.f1f2in21(_norm_target(target), Q2, W * W)
+        t = _norm_target(target)
+        F1, F2 = cb21.f1f2in21(t, Q2, W * W)
+        return F1 * _sf_factor(t, self.kin_mass(t)), F2
 
     def kin_mass(self, target):
         """SF uses M = 0.938272 for p and n; SMEARSUB the average nucleon mass for d."""

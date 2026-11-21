@@ -45,8 +45,29 @@ The same model objects feed the tagged-DIS code through `AsNucleonStructure` (se
   prerelease 1, from the JLab SIMC package). Do not use it for publications without checking its
   status with the author.
 
-Conventions: GeV, cross sections in µb, $\sigma_T = 8\pi^2\alpha\,F_1/(W^2-M^2)$ (Hand), deuteron
-**per nucleus** with $W$ computed as for a free proton (a label for the photon energy $\nu$).
+Conventions (details in the README and the `taggedpd.inclusive` docstring): GeV, cross sections
+in µb, $\alpha=\frac{1}{137.036}$, 1 GeV$^{-2}$ = 389.4 µb, $M$ the fit's nucleon mass. The target is at rest
+in the lab: a free nucleon for p, n, the deuteron for d. $\nu$ is the lab photon energy,
+$\nu=\frac{p_T\cdot q}{M_T}$ for that target. Bound nucleons move (Fermi motion) and are integrated over
+inside the deuteron fits; no variable here refers to them. $W$ is the $\gamma^*N$ mass for p, n.
+For d it is the $\gamma^*N$ mass a free nucleon at rest would have, $W^2=M^2+2M\nu-Q^2$: only a
+label for $\nu$, not the $\gamma^*d$ mass.
+
+* p, n: $F_1=MW_1$, $F_2=\nu W_2$, $x_N=\frac{Q^2}{2M\nu}\in(0,1]$.
+* d, as in Part II (the deuteron's own SFs, not divided by 2): $F_1^D=M_DW_1$, $F_2^D=\nu W_2$,
+  $x_D=\frac{Q^2}{2M_D\nu}\in(0,1]$, and Callan–Gross reads $F_2^D=2x_DF_1^D$. So $F_1^D\approx2(F_{1p}+F_{1n})$,
+  about 4× the p, n average. Part II's tagged-DIS $x=2x_D\in(0,2]$ is not used here.
+* $\sigma_{T,L}$ are virtual-photon absorption cross sections in Hand's convention. In invariants
+  ($y=\frac{p_T\cdot q}{p_T\cdot l}$, lepton mass neglected):
+  $\frac{d^2\sigma}{dx_T\,dQ^2}=\Gamma(\sigma_T+\epsilon\sigma_L)=\frac{2\pi\alpha^2y^2}{Q^4(1-\epsilon)}(F_T+\epsilon F_L)$, with
+  $\Gamma=\frac{\alpha M_TKy^2}{\pi Q^4(1-\epsilon)}$, $\sigma_{T,L}=\frac{2\pi^2\alpha F_{T,L}}{M_TK}$, and
+  $\epsilon=\frac{1-y-\frac14\gamma^2y^2}{1-y+\frac12y^2+\frac14\gamma^2y^2}$. Here $x_T, M_T$ are $x_N, M$ for p, n and $x_D, M_D$ for d.
+  $K=\frac{W^2-M^2}{2M}=\nu-\frac{Q^2}{2M}$ is the free-nucleon flux, used for d too (as in the fits); it cancels
+  in $\Gamma\sigma$. For real photons $\frac{K}{\nu}\to1$, $\gamma^2\to0$, $\sigma_L\to0$, and $\sigma_T$ is the
+  measured photoabsorption cross section. With the deuteron's own $K_D=\nu-\frac{Q^2}{2M_D}$ one would get
+  $\sigma_T\frac{K}{K_D}$ ($\Gamma\sigma_T$, $R$ and all $F$'s unchanged).
+* The low-level `christy_bosted*` routines use the Fortran convention for d: per nucleus, but
+  $F_1=MW_1$ with $x_N\in(0,2]$, so $F_1^D=\frac{M_D}{M}F_1^{\rm Fortran}$.
 """)
 
 code(r"""
@@ -77,10 +98,10 @@ md(r"""
 ## 1. How the neutron (and the deuteron) are obtained
 
 There is **no separate neutron fit**. Bosted & Christy parametrize the *free-nucleon average*
-$\bar F_1 = (F_{1p}+F_{1n})/2$ (routine `RESMODD`: same Breit–Wigner + background form as the proton
+$\bar F_1 = \frac{F_{1p}+F_{1n}}{2}$ (routine `RESMODD`: same Breit–Wigner + background form as the proton
 fit, own parameters). The deuteron is then modelled as (`RESD`)
 
-$$F_1^d(W^2,Q^2)\big/2 \;=\; \sum_i w_i\,\bar F_1\big(W'^2_i,Q^2\big) \;+\; F_1^{\rm MEC}(W^2,Q^2),$$
+$$\frac{F_1^{d,\rm Fortran}(W^2,Q^2)}{2} \;=\; \sum_i w_i\,\bar F_1\big(W'^2_i,Q^2\big) \;+\; F_1^{\rm MEC}(W^2,Q^2),$$
 
 a Fermi smearing over the deuteron momentum distribution (tabulated bins $p_z$, $\langle p^2\rangle$,
 weights; the struck nucleon is off shell with energy $M_d-\sqrt{M^2+p^2}$), plus an empirical,
@@ -116,7 +137,7 @@ fig.tight_layout(); save(fig, 'pp_neutron_construction')
 md(r"""
 ## 2. Real-photon total cross sections
 
-$\sigma_T(\gamma p)$, $\sigma_T(\gamma n)$ and $\sigma_T(\gamma d)/2$ versus $W$ and versus the photon lab
+$\sigma_T(\gamma p)$, $\sigma_T(\gamma n)$ and $\frac{\sigma_T(\gamma d)}{2}$ versus $W$ and versus the photon lab
 energy. The shaded band marks where the default model uses the Christy–Bosted forms *outside* the
 published fit range (between the pion threshold and $W=1.1$ GeV for p, n; $W<1.2$ GeV for d). As a
 sanity check, the $\Delta(1232)$ peak of $\gamma p$ is about 0.5 mb (PDG). The deuteron, plotted per
@@ -162,10 +183,10 @@ md(r"""
 
 * *Deuteron below $W\approx1.2$ GeV at $Q^2=0$.* The strength there is dominated by the empirical MEC
   term (~300 µb near the free-nucleon threshold). In the FORTRAN its $Q^2$ dependence is
-  $1/(1+\max(0.3,Q^2)/a)^{b}$, i.e. it is frozen at its $Q^2=0.3$ GeV² value for real photons, and the
+  $\left(1+\frac{\max(0.3,Q^2)}{a}\right)^{-b}$, i.e. it is frozen at its $Q^2=0.3$ GeV² value for real photons, and the
   region lies below the deuteron fit's $W$ range. Treat it as unconstrained; it is labelled
   "threshold extrapolation" by the default model. Photodisintegration is not included at all.
-* *$\sigma_T(\gamma n)/\sigma_T(\gamma p)\approx1.15$ at the $\Delta$ peak.* The $\Delta$ is isovector, and
+* *$\frac{\sigma_T(\gamma n)}{\sigma_T(\gamma p)}\approx1.15$ at the $\Delta$ peak.* The $\Delta$ is isovector, and
   data extracted from the deuteron give $\gamma n\approx\gamma p$ there, so this ratio reflects the
   unfolding (smearing + MEC) in the neutron extraction. Compare with neutron data or MAID before
   relying on the neutron at the 10% level near the $\Delta$.
@@ -175,14 +196,15 @@ md(r"""
 md(r"""
 ## 3. $F_1$ for p, n, d at several $Q^2$
 
-$F_1(W,Q^2)$; deuteron per nucleus divided by 2. At finite $Q^2$, $F_2$ and $R$ are also available
+$F_1(W,Q^2)$. For the deuteron, $\frac{F_1^D}{4}$ ($\approx$ the nucleon average, see the conventions
+above). At finite $Q^2$, $F_2$ and $R$ are also available
 (`cb.f1f2in09`, or `ChristyBostedStructure` as a `NucleonStructure` provider in $(x,Q^2)$).
 """)
 
 code(r"""
 W = np.linspace(1.08, 3.0, 800)
 fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
-for ax, tgt, title, fac in zip(axs, 'pnd', ('proton', 'neutron', 'deuteron / 2'), (1, 1, 0.5)):
+for ax, tgt, title, fac in zip(axs, 'pnd', ('proton', 'neutron', r'deuteron, $F_1^D/4$'), (1, 1, 0.25)):
     for Q2 in (0.0, 0.1, 0.5, 1.0, 2.0, 4.0):
         ax.plot(W, fac * inclusive_sf(W, tgt, 'F1', Q2=Q2), label=f'$Q^2$ = {Q2:g}')
     ax.set_title(title); ax.set_xlabel('$W$ [GeV]')
@@ -194,10 +216,11 @@ md(r"""
 ### Which "$F_T$", "$F_L$"? — conventions
 
 `inclusive_sf(..., quantity=...)` returns, besides $\sigma_T$ and $F_1$: `"F_T"` $=F_{[UU,T]}=2F_1$
-and `"F_L"` $=F_{[UU,L]}=(1+\gamma^2)F_2/x-2F_1=R\,F_T$, both in the paper's (Part I) convention;
-`"F_L_scaling"` $=F_2/x-2F_1$, the scaling-limit relation of Eq. (5.10); `"xF_L"`
+and `"F_L"` $=F_{[UU,L]}=\frac{(1+\gamma^2)F_2}{x}-2F_1=R\,F_T$, both in the paper's (Part I) convention;
+`"F_L_scaling"` $=\frac{F_2}{x}-2F_1$, the scaling-limit relation of Eq. (5.10); `"xF_L"`
 $=(1+\gamma^2)F_2-2xF_1$, the "$F_L$" of Christy–Bosted and many DIS papers; and also `"F2"`, `"R"`,
-`"sigma_L"`. Here $\gamma^2=4M^2x^2/Q^2=Q^2/\nu^2$. In the resonance region $\gamma^2$ is not small,
+`"sigma_L"`. Here $x$ is the Bjorken variable of the target, $x_N=\frac{Q^2}{2M\nu}\in(0,1]$ for p, n and
+$x_D=\frac{Q^2}{2M_D\nu}\in(0,1]$ for d, and $\gamma^2=\frac{Q^2}{\nu^2}$. In the resonance region $\gamma^2$ is not small,
 so the scaling-limit relation differs substantially from the exact one and even turns negative
 (below). At $Q^2=0$ all $F_L$-type quantities vanish.
 """)
@@ -221,7 +244,7 @@ md(r"""
 
 The limit $Q^2\to0$ is continuous, but some resonance heights vary on a very small $Q^2$ scale. For
 example, the proton fit's second resonance (S11(1535)) has a height factor
-$1 + 6823\,Q^2/(1+33521\,Q^2)$, which rises from 1 to 1.2 between $Q^2 = 0$ and $Q^2\approx 10^{-3}$
+$1 + \frac{6823\,Q^2}{1+33521\,Q^2}$, which rises from 1 to 1.2 between $Q^2 = 0$ and $Q^2\approx 10^{-3}$
 GeV² (and enters squared). This is how the fit reconciles the real-photon point with the
 electroproduction data; it is a feature of the fit, not of the port. Practical consequence: for
 quasi-real photons ($Q^2\sim 10^{-5}$–$10^{-3}$ GeV², e.g. small-angle electroproduction) the result is not
@@ -369,7 +392,7 @@ code(r"""
 # F1 at finite Q^2, both fits
 W = np.linspace(1.08, 3.0, 600)
 fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
-for ax, tgt, title, fac in zip(axs, 'pnd', ('proton', 'neutron', 'deuteron / 2'), (1, 1, 0.5)):
+for ax, tgt, title, fac in zip(axs, 'pnd', ('proton', 'neutron', r'deuteron, $F_1^D/4$'), (1, 1, 0.25)):
     for i, Q2 in enumerate((0.1, 0.5, 2.0, 5.0)):
         ax.plot(W, fac * inclusive_sf(W, tgt, 'F1', Q2=Q2, model=m09), c=f'C{i}', label=f'$Q^2$={Q2:g} 2009')
         ax.plot(W, fac * inclusive_sf(W, tgt, 'F1', Q2=Q2, model=m21), '--', c=f'C{i}', label=f'$Q^2$={Q2:g} 2021 (prelim.)')
@@ -386,7 +409,7 @@ md(r"""
 * The smearing functions are normalized: $\int f_{11}\,dy = \int f_{22}\,dy = 1$ at $\gamma = 1$.
 * The original code has quirks that are reproduced on purpose and documented in the module. The most
   visible one: below $Q^2=0.05$ GeV² the deuteron uses a separate smearing routine whose integrand is
-  $F_1(z)$ instead of $F_1(z)/y$, which makes the deuteron $F_1$ **discontinuous at $Q^2=0.05$** (left
+  $F_1(z)$ instead of $\frac{F_1(z)}{y}$, which makes the deuteron $F_1$ **discontinuous at $Q^2=0.05$** (left
   plot). Also, `GETFY` reads the table one $y$ bin too high.
 * The 2021 range extends to $W^2 < 20$ GeV² (right plot; the 2009 fits stop at $W\approx3$ GeV).
 """)
@@ -414,7 +437,7 @@ md(r"""
 * **Proton:** the two fits agree to within ~5% across the resonance region; they differ only near
   threshold, where the cross section is small.
 * **Neutron:** differences of ±20% in the resonance region. At the $\Delta$ the 2021 fit gives
-  $\sigma_n/\sigma_p\approx0.95$ (2009: 1.15). Near threshold the 2021 neutron is about twice the
+  $\frac{\sigma_n}{\sigma_p}\approx0.95$ (2009: 1.15). Near threshold the 2021 neutron is about twice the
   2009 one. At the $\eta$ threshold ($W\approx1.49$ GeV) the 2021 neutron has a cusp: its
   non-resonant $\eta$ term $(1-x'_\eta)^{t_1}$ has $t_1\approx0.03$ at $Q^2=0$, so it switches on
   almost like a step.
@@ -492,7 +515,7 @@ functions from LHAPDF6 sets,
 
 $$F_2=\sum_q e_q^2\,x\,(q+\bar q),\qquad g_1=\tfrac12\sum_q e_q^2\,(\Delta q+\Delta\bar q),$$
 
-with $u\leftrightarrow d$ for the neutron, $F_1=F_2/(2x(1+R))$ ($R=0.18$, no target-mass factor) and
+with $u\leftrightarrow d$ for the neutron, $F_1=\frac{F_2}{2x(1+R)}$ ($R=0.18$, no target-mass factor) and
 $g_1+g_2$ from Wandzura–Wilczek. Below, CT18LO (unpolarized) and NNPDFpol11_100 (polarized) are
 compared with the defaults SLAC/Bodek and GRSV2000. These are LO formulas: no NLO coefficient
 functions, no target-mass or higher-twist corrections, so they are not meant for the resonance
@@ -600,7 +623,7 @@ md(r"""
 **What the comparison shows:**
 
 * **$F_2$, $x\gtrsim0.1$:** CT18LO and SLAC agree to ~10–15% (CT18LO is lower at large $x$, where
-  the Bodek fit contains resonance, target-mass and higher-twist strength). The ratio $F_2^n/F_2^p$
+  the Bodek fit contains resonance, target-mass and higher-twist strength). The ratio $\frac{F_2^n}{F_2^p}$
   is similar, except at large $x$ and low $Q^2$, where the Bodek fit's resonances show up.
 * **$F_2$, small $x$:** the Bodek fit is flat and has hardly any $Q^2$ dependence there; it was fit to
   SLAC data at larger $x$. CT18LO has the rise and the scaling violations seen at HERA. Use SLAC

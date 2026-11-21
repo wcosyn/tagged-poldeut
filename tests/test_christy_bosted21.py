@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 import pytest
 
+from taggedpd.constants import M_DEUTERON
 from taggedpd import christy_bosted21 as c21
 from taggedpd.christy_bosted21 import PreliminaryFitWarning
 from taggedpd.inclusive import ChristyBosted2021, default_photoabsorption, photoproduction
@@ -116,8 +117,8 @@ def test_photoproduction_2021_consistency():
         W = np.linspace(1.1, 4.4, 30)
         assert np.allclose(photoproduction(W, "p", model=m), c21.rescsp(W**2, 0.0)[0], rtol=1e-13)
         assert np.allclose(photoproduction(W, "n", model=m), c21.rescsn(W**2, 0.0)[0], rtol=1e-13)
-        F1d = photoproduction(W, "d", "F1", model=m)
-        assert np.allclose(F1d, c21.rescsd(W**2, 0.0)[0], rtol=1e-13)
+        F1d = photoproduction(W, "d", "F1", model=m)       # Part II: M_D W1 = (M_D/M) x native
+        assert np.allclose(F1d, M_DEUTERON / c21._MAVG * c21.rescsd(W**2, 0.0)[0], rtol=1e-13)
         _, src = photoproduction(np.array([1.0, 1.5, 4.6]), "p", model=m, return_source=True)
         assert list(src) == ["below pion threshold", "Christy 2021 (PRELIMINARY)", ""]
 
@@ -162,4 +163,5 @@ def test_quantity_conventions_2021():
                                (sL / sT) * photoproduction(W, tgt, "F_T", Q2=Q2, model=m), rtol=1e-9)
         F1d, F2d, FLd = c21.rescsd(W**2, Q2)
         assert np.allclose(photoproduction(W, "d", "xF_L", Q2=Q2, model=m), FLd, rtol=1e-9, atol=1e-14)
-        assert np.allclose(photoproduction(W, "d", "F_T", Q2=Q2, model=m), 2 * F1d, rtol=1e-13)
+        assert np.allclose(photoproduction(W, "d", "F_T", Q2=Q2, model=m),
+                           2 * M_DEUTERON / c21._MAVG * F1d, rtol=1e-13)

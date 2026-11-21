@@ -26,7 +26,7 @@ FORTRAN            here                          content
 ``CHRISTY507``     :func:`christy507`            proton F1, R, sigma_T, sigma_L
 ``RESMODD``        :func:`resmodd`               F1 of the free (p+n)/2 average, from the deuteron fit
 ``MEC``            :func:`mec_deuteron`          empirical transverse "dip-region" term of the deuteron fit
-``RESD``           :func:`resd`                  deuteron F1 per nucleon: Fermi-smeared resmodd + MEC
+``RESD``           :func:`resd`                  deuteron F1 / 2: Fermi-smeared resmodd + MEC
 ``PIND``           :func:`pind`                  Fermi-smeared proton (gives R for the deuteron)
 ``F1F2IN09``       :func:`f1f2in09`              driver for A <= 2: F1, F2, R of p, n, d
 =================  ===========================  ====================================
@@ -60,8 +60,11 @@ Kinematics and units
 GeV throughout. ``w2`` is the invariant mass squared *calculated assuming
 scattering from a free nucleon at rest* (also for the deuteron, where it is just
 a way to label the photon energy: nu = (w2 - M^2 + Q^2)/2M with the proton mass).
-Cross sections are in microbarn. F1 is per nucleon for p and n and **per
-nucleus** for the deuteron (as returned by ``F1F2IN09``). The relation
+Cross sections are in microbarn. F1 is that of the free nucleon for p and n and of the
+**whole deuteron** for d (as returned by ``F1F2IN09``), but always F1 = M W1
+with the *nucleon* mass M (so x = Q^2/2M nu in (0, 2) for d). The inclusive layer
+(:mod:`taggedpd.inclusive`) converts the deuteron to the paper's (Part II)
+convention F1^D = M_D W1 with x_D = Q^2/2M_D nu. The relation
 sigma_T = 4 pi^2 alpha F1 / (M K), with Hand's flux K = (W^2 - M^2)/2M, is the
 one built into the fit (``christy507``).
 
@@ -388,7 +391,7 @@ def resmodd(w2, q2, xval=XVAL_DEUTERON, binned=True):
 # deuteron: MEC, RESD, PIND
 # ===========================================================================
 def mec_deuteron(q2, w2, xval=XVAL_DEUTERON):
-    """Empirical transverse dip-region term of the deuteron fit, F1 per nucleon (port of MEC).
+    """Empirical transverse dip-region term of the deuteron fit, contribution to F1_d / 2 (port of MEC).
 
     Returns 0 where nu <= 0 (the FORTRAN would produce NaN there).
     """
@@ -480,7 +483,7 @@ def _smear(w2, q2, fn):
 
 
 def resd(q2, w2, xval=XVAL_DEUTERON, binned=True):
-    """Deuteron F1 **per nucleon**: Fermi-smeared :func:`resmodd` plus :func:`mec_deuteron` (port of RESD)."""
+    """Deuteron F1 divided by 2 (Fortran convention F1 = M W1): Fermi-smeared :func:`resmodd` plus :func:`mec_deuteron` (port of RESD)."""
     acc = _smear(w2, q2, lambda a, b: (resmodd(a, b, xval, binned),))
     f1 = np.zeros(np.broadcast(np.asarray(w2), np.asarray(q2)).shape) if acc is None else acc[0]
     return f1 + mec_deuteron(q2, w2, xval)
