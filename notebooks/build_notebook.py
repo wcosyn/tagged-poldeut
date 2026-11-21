@@ -74,9 +74,9 @@ print('taggedpd', taggedpd.__version__, '|', model.lf.wf, '|', model.structure.n
 md(r"""
 ## 1. Wave function normalization and sum rules
 
-The radial wave functions are normalized as $4\pi\int dk\,k^2/E\,[f_0^2+f_2^2] = 1$ (Eq. 3.23),
-with $f_L = \sqrt{E/4\pi}\,U_L$ (Eq. 3.24). For Yukawa parametrizations this integral is known in
-closed form, $\sum_{ij}C_iC_j/(m_i+m_j)$, which the test-suite compares with numerical quadrature.
+The radial wave functions are normalized as $4\pi\int dk\,\frac{k^2}{E}\,[f_0^2+f_2^2] = 1$ (Eq. 3.23),
+with $f_L = \sqrt{\frac{E}{4\pi}}\,U_L$ (Eq. 3.24). For Yukawa parametrizations this integral is known in
+closed form, $\sum_{ij}\frac{C_iC_j}{m_i+m_j}$, which the test-suite compares with numerical quadrature.
 The D wave is positive by convention ($W(k)>0$ at small $k$).
 
 The table below shows the integrals of the LF distributions (Eqs. 4.23–4.25 and Table III, "exact"
@@ -150,7 +150,7 @@ fig.tight_layout(); save(fig, 'fig03_04')
 md(r"""
 ### Fig. 5 — unpolarized and tensor-polarized distributions
 Normalized tensor distributions of Eq. (4.19) (the C++ output differs by factors
-$\sqrt{3/2}$, $\sqrt2$, $1/\sqrt2$, see `densities.py`).
+$\sqrt{\frac32}$, $\sqrt2$, $\frac{1}{\sqrt2}$, see `densities.py`).
 """)
 
 code(r"""
@@ -221,7 +221,7 @@ md(r"""
 ## 3. Observables (Sec. VI)
 
 ### Fig. 9 / Fig. 15 — unpolarized differential cross section
-$d\sigma_U/dx\,dQ^2\,(d\alpha_p/\alpha_p)\,d^2p_{pT}$ [nb/GeV$^4$], $\phi_p$-averaged, at fixed $x_n = 0.05$,
+$\frac{d\sigma_U}{dx\,dQ^2\,\frac{d\alpha_p}{\alpha_p}\,d^2p_{pT}}$ [nb/GeV$^4$], $\phi_p$-averaged, at fixed $x_n = 0.05$,
 $Q^2 = 6$ GeV$^2$, and $s = 800$ GeV$^2$ **per nucleon** (5×41 GeV; this is the convention of arXiv:2603.23700's
 plot script, which gives the quoted $\epsilon = 0.98$; `Kinematics.from_s(..., per_nucleon=True)`).
 
@@ -278,7 +278,7 @@ ax.set_title('Fig. 10'); fig.tight_layout(); save(fig, 'fig10')
 """)
 
 md(r"""
-### Fig. 11 / Fig. 16 — vector-polarized structure function ratio $F_{[LS_L]D}/\Sigma_\parallel F_D$ (Eq. 6.5)
+### Fig. 11 / Fig. 16 — vector-polarized structure function ratio $\frac{F_{[LS_L]D}}{\Sigma_\parallel F_D}$ (Eq. 6.5)
 $x_n = 0.1$, $Q^2 = 2$ GeV$^2$, $\epsilon = 0.8$. The cross-check line uses `vector_asymmetry`
 (two-state double-spin asymmetry from pure deuteron states, arXiv:2603.23699) divided by $D_{\parallel[S_L]} = \sqrt{1-\epsilon^2}$.
 """)
@@ -310,15 +310,15 @@ fig.tight_layout(); save(fig, 'fig11_16')
 """)
 
 md(r"""
-### Fig. 12 — transversely polarized ratio $F^{\cos\phi_S}_{[LS_T]D}/\Sigma_\perp F_D$ (Eq. 6.10b)
+### Fig. 12 — transversely polarized ratio $\frac{F^{\cos\phi_S}_{[LS_T]D}}{\Sigma_\perp F_D}$ (Eq. 6.10b)
 
 **Discrepancy with the draft figure.** The plot scripts used for Fig. 12
-(`tagdeut_ALL_ALT*.py`) computed $\gamma_n$ as `2*x_n*0.93/Q2` instead of $2x_nm/Q$
+(`tagdeut_ALL_ALT*.py`) computed $\gamma_n$ as `2*x_n*0.93/Q2` instead of $\frac{2x_nm}{Q}$
 (Eq. 5.22), and took $g_1+g_2$ from the then C++ Wandzura–Wilczek routine, a 101-point Riemann
 sum that overestimates $|g_1+g_2|$ by 7.5% at $x = 0.1$. Together these made the draft curves
 ~30% too small. Both are fixed now (scripts corrected, C++ WW fixed in nucqcd `e9d1e6a`,
-`neutron_SF*.txt` regenerated); the corrected scripts reproduce the solid curves. Solid: correct ($\gamma_n = 2x_nm/Q$, accurate WW). Thin dotted: emulating the
-script (`ww='cpp'`, $\gamma_n \to 2x_n\cdot0.93/Q^2$), which reproduces arXiv:2603.23700's values
+`neutron_SF*.txt` regenerated); the corrected scripts reproduce the solid curves. Solid: correct ($\gamma_n = \frac{2x_nm}{Q}$, accurate WW). Thin dotted: emulating the
+script (`ww='cpp'`, $\gamma_n \to \frac{2x_n\cdot0.93}{Q^2}$), which reproduces arXiv:2603.23700's values
 (e.g. ≈0.0075 at $\alpha_p = 1$, $p_{pT} = 0$).
 """)
 
@@ -347,7 +347,7 @@ print('alpha_p=1, pT=0:  correct', float(ratio_perp(model, 1.0, 0.0)),
 md(r"""
 ### Fig. 13 / Fig. 17 — tensor-polarized asymmetry $A^T_\parallel$ (Eq. 6.12)
 Computed from pure deuteron states $\Lambda = \pm1, 0$ along the beam (arXiv:2603.23699 Eq. AT_gen) in the DIS
-limit — it reduces to $\sqrt{2/3}\,P_{[T_{LL},U]}/P_{[U,U]}$ (checked in the tests). Range $[-2, 1]$.
+limit — it reduces to $\sqrt{\frac23}\,\frac{P_{[T_{LL},U]}}{P_{[U,U]}}$ (checked in the tests). Range $[-2, 1]$.
 """)
 
 code(r"""
@@ -403,7 +403,7 @@ md(r"""
 
 $\int d\Gamma_p\,\sigma_{{\rm red},D} \approx F_{2n} - (1-\epsilon)F_{Ln}$ "up to nuclear binding effects":
 integrate the $\phi_p$-averaged reduced cross section over the spectator momentum at fixed $x$, $Q^2$, $\epsilon$
-and compare with the free-neutron reduced cross section at $x_n = x$ (the integral smears over $x_n = x/(2-\alpha_p)$).
+and compare with the free-neutron reduced cross section at $x_n = x$ (the integral smears over $x_n = \frac{x}{2-\alpha_p}$).
 """)
 
 code(r"""
@@ -424,7 +424,7 @@ md(r"""
 
 Everything is vectorized; a few $\mu$s per event. Example: weights for events sampled uniformly in
 $(x, Q^2, \alpha_p, p_{pT}, \phi_p)$ for a longitudinally (beam-parallel) polarized deuteron with
-vector polarization $P_z = 0.8$, tensor polarization $P_{zz} = 0.6$, and electron helicity $+1/2$.
+vector polarization $P_z = 0.8$, tensor polarization $P_{zz} = 0.6$, and electron helicity $+\frac12$.
 """)
 
 code(r"""

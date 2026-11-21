@@ -33,6 +33,13 @@ GeV^2. Three implementations are shipped:
     Leading-order parton-model F2 and g1 from any LHAPDF6 sets (optional,
     requires the ``lhapdf`` python module), WW g2 likewise gridded.
 
+:class:`~taggedpd.inclusive.ChristyBostedStructure`
+    Unpolarized F1, F2 of p and n in the resonance region from the Christy-Bosted
+    fits [PRC 81 (2010) 055213; PRC 77 (2008) 065206]. Defined in
+    :mod:`taggedpd.inclusive` (re-exported here), where any (W, Q^2) model, e.g.
+    Christy-Bosted in the resonance region + SLAC/LHAPDF in DIS, can be turned into
+    a provider with ``AsNucleonStructure``.
+
 :class:`CombinedStructure` glues an unpolarized and a polarized provider
 together; :func:`default_structure` returns SLAC (R = 0.18) + GRSV2000, the
 input used for arXiv:2603.23700's figures.
@@ -54,7 +61,7 @@ import numpy as np
 from .constants import M_NEUTRON, M_PROTON
 
 __all__ = ["NucleonStructure", "SLACStructure", "GRSV2000Structure",
-           "LHAPDFStructure", "CombinedStructure", "GriddedStructure",
+           "LHAPDFStructure", "CombinedStructure", "GriddedStructure", "ChristyBostedStructure",
            "default_structure", "r1998", "ww_grid"]
 
 _DATA = os.path.join(os.path.dirname(__file__), "data")
@@ -424,9 +431,11 @@ class LHAPDFStructure(NucleonStructure):
     construction on (x, Q2) nodes and interpolated. Requires the ``lhapdf``
     python bindings; either set may be ``None``.
 
-    LHAPDF is called point by point here; for event generation wrap it as
-    ``GriddedStructure(LHAPDFStructure(...))``. (Untested in this repository:
-    the lhapdf module was not available when it was written.)
+    LHAPDF is called on every evaluation (vectorized over the points, ~1 us
+    per point and flavour); for event generation wrap it as
+    ``GriddedStructure(LHAPDFStructure(...))``. Outside a set's (x, Q2) range
+    LHAPDF's own extrapolation is used (with the default ``continuation``
+    extrapolator below Q2min). Tested with CT18LO and NNPDFpol11_100.
 
     Parameters
     ----------
@@ -435,18 +444,22 @@ class LHAPDFStructure(NucleonStructure):
     member : int
         Set member (0 = central).
     R : float or "r1998"
-    nf : int
-        Number of light flavours in the sums (default 3 for g1, 5 for F2 is
-        set via ``nf_unpol``).
+        R = sigma_L/sigma_T used for F1 (no target-mass factor).
+    nf_unpol, nf_pol : int
+        Number of quark flavours in the F2 and g1 sums (default 5 and 3).
+    ww_Q2_nodes : array_like, optional
+        Q2 nodes of the WW g1+g2 table (default 30 log-spaced in the polarized
+        set's range, within [1, 1e5]); outside them it is clamped.
+    n_ww_x : int
+        Number of x nodes of the WW table.
     """
 
     def __init__(self, unpolarized_set=None, polarized_set=None, member=0,
                  R=0.18, nf_unpol=5, nf_pol=3, ww_Q2_nodes=None, n_ww_x=300):
         try:
-            import lhapdf  # noqa: F401
+            import lhapdf
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise ImportError("LHAPDFStructure needs the 'lhapdf' python module") from exc
-        import lhapdf
         lhapdf.setVerbosity(0)
         self._u = lhapdf.mkPDF(unpolarized_set, member) if unpolarized_set else None
         self._p = lhapdf.mkPDF(polarized_set, member) if polarized_set else None
@@ -467,35 +480,39 @@ class LHAPDFStructure(NucleonStructure):
     _E2 = {1: 1 / 9, 2: 4 / 9, 3: 1 / 9, 4: 4 / 9, 5: 1 / 9}
 
     def _sum(self, pdf, x, Q2, nucleon, nf):
+        """sum_q e_q^2 x (q + qbar) on the broadcast (x, Q2); 0 outside 0 < x < 1.
+
+        Returns the broadcast x as well. The sequence form of ``pdf.xfxQ2`` zips
+        x and Q2 (silently truncating on unequal lengths), hence the broadcast.
+        """
         proton = _is_proton(nucleon)
-        x = np.atleast_1d(np.asarray(x, float))
-        Q2 = np.broadcast_to(np.asarray(Q2, float), x.shape)
+        x, Q2 = np.broadcast_arrays(np.asarray(x, float), np.asarray(Q2, float))
         out = np.zeros(x.shape)
-        for idx in np.ndindex(x.shape):
-            xi, qi = float(x[idx]), float(Q2[idx])
-            if not (0 < xi < 1):
-                continue
-            s = 0.0
-            for f in range(1, nf + 1):
-                fl = f
-                if not proton and f in (1, 2):   # isospin: u <-> d
-                    fl = 3 - f
-                s += self._E2[f] * (pdf.xfxQ2(fl, xi, qi) + pdf.xfxQ2(-fl, xi, qi))
-            out[idx] = s
-        return out   # = sum e^2 x (q + qbar)
+        ok = (x > 0) & (x < 1)
+        xs, qs = x[ok].tolist(), Q2[ok].tolist()
+        s = np.zeros(len(xs))
+        for f in range(1, nf + 1):
+            fl = 3 - f if (not proton and f in (1, 2)) else f   # isospin: u <-> d
+            s += self._E2[f] * (np.asarray(pdf.xfxQ2(fl, xs, qs), float)
+                                + np.asarray(pdf.xfxQ2(-fl, xs, qs), float))
+        out[ok] = s
+        return out, x
 
     def F1F2(self, x, Q2, nucleon="n"):
         if self._u is None:
             raise NotImplementedError("no unpolarized set given")
-        F2 = self._sum(self._u, x, Q2, nucleon, self.nf_unpol)
-        x = np.asarray(x, float)
+        F2, x = self._sum(self._u, x, Q2, nucleon, self.nf_unpol)
         R = r1998(x, Q2) if isinstance(self.R, str) else self.R
-        return F2 / (2 * x * (1 + R)), F2
+        with np.errstate(divide="ignore", invalid="ignore"):
+            F1 = np.where(F2 != 0, F2 / (2 * x * (1 + R)), 0.0)
+        return F1[()], F2[()]
 
     def g1(self, x, Q2, nucleon="n"):
         if self._p is None:
             raise NotImplementedError("no polarized set given")
-        return 0.5 * self._sum(self._p, x, Q2, nucleon, self.nf_pol) / np.asarray(x, float)
+        xg1, x = self._sum(self._p, x, Q2, nucleon, self.nf_pol)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(xg1 != 0, 0.5 * xg1 / x, 0.0)[()]
 
     def g1_plus_g2(self, x, Q2, nucleon="n"):
         key = "p" if _is_proton(nucleon) else "n"
@@ -568,3 +585,11 @@ def default_structure(R=0.18, target_mass=True, ww="exact"):
     """SLAC/Bodek F2 (R = 0.18) + GRSV2000 LO g1 with WW g2: arXiv:2603.23700's numerical input."""
     return CombinedStructure(SLACStructure(R=R, target_mass=target_mass),
                              GRSV2000Structure(ww=ww))
+
+
+def __getattr__(name):
+    """Lazy re-export of ChristyBostedStructure (defined in taggedpd.inclusive, which imports this module)."""
+    if name == "ChristyBostedStructure":
+        from .inclusive import ChristyBostedStructure
+        return ChristyBostedStructure
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

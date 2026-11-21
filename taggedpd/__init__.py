@@ -16,6 +16,10 @@ Equation and section numbers refer to the arXiv versions. Main entry points:
 * :class:`~taggedpd.densities.LFDistributions`          -- neutron LF momentum/spin distributions (Sec. IV)
 * :mod:`~taggedpd.nucleon`                              -- nucleon F1, F2, g1, g2 providers
 * :class:`~taggedpd.crosssection.TaggedDIS`             -- structure functions, sigma_red, dsigma, asymmetries
+* :func:`~taggedpd.inclusive.inclusive_sf`               -- unpolarized inclusive SFs / sigma_T,L of p, n, d in (W, Q^2),
+                                                           Q^2 = 0 to DIS; pluggable models (alias: photoproduction)
+* :mod:`~taggedpd.christy_bosted`                       -- port of the Christy-Bosted F1F209 fits
+* :mod:`~taggedpd.christy_bosted21`                     -- PRELIMINARY 2021 fit (port of SIMC F1F2IN21_v1.0.f)
 """
 
 from .constants import M_DEUTERON, M_NUCLEON, M_NEUTRON, M_PROTON
@@ -24,5 +28,9 @@ from .densities import LFDistributions, NeutronDistributions, cm_momentum, spect
 from .nucleon import (NucleonStructure, SLACStructure, GRSV2000Structure, LHAPDFStructure,
                       CombinedStructure, GriddedStructure, default_structure)
 from .crosssection import Kinematics, Polarization, TaggedDIS
+from .inclusive import (inclusive_sf, photoproduction, InclusiveModel, PhotoabsorptionModel,
+                        ChristyBosted, ChristyBosted2021, Piecewise, Blend, FromNucleonStructure,
+                        AsNucleonStructure, ChristyBostedStructure, default_photoabsorption,
+                        resonance_dis_model)
 
 __version__ = "0.1.0"
