@@ -4,9 +4,15 @@ A standalone, numpy-only Python implementation of the impulse-approximation cros
 
   e(λₑ) + D(S_D, T_D) → e′ + X + p (or n)
 
-from W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a polarized spin-1
-target. II. Deuteron and spectator nucleon tagging* (JLAB-THY-26-4661, "the paper"), with
-the cross-section decomposition of Part I (same authors). It is a port of the relevant
+from
+
+* W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. II. Deuteron and spectator nucleon tagging*, Phys. Rev. C **114**, 025202 (2026), [arXiv:2603.23700](https://arxiv.org/abs/2603.23700) (JLAB-THY-26-4661),
+
+with the cross-section decomposition of
+
+* W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. I. Cross section and spin observables*, Phys. Rev. C **114**, 025201 (2026), [arXiv:2603.23699](https://arxiv.org/abs/2603.23699) (JLAB-THY-26-4663).
+
+Equation, section, table and figure numbers refer to the arXiv versions. It is a port of the relevant
 parts of `physics-code` (`Poldeut`, `TDeuteron`/`TYukawaPWF`, `NucleonStructure`), aimed
 at use in an MC event generator. There is no numerical integration at run time: about
 3 µs per event, vectorized.
@@ -40,7 +46,7 @@ alpha_p, pT, phi_p = 1.05, 0.15, 0.3        # spectator LF fraction, |p_pT| [GeV
 sred = model.reduced_cross_section(kin, alpha_p, pT, phi_p, lambda_e=+0.5, pol=pol)  # Eq. (2.21b)
 dsig = model.dsigma(kin, alpha_p, pT, phi_p, lambda_e=+0.5, pol=pol)  # nb/GeV^4 per dx dQ2 dα/α d²pT
 
-# asymmetries built from pure deuteron states (Part I Sec. V D)
+# asymmetries built from pure deuteron states (arXiv:2603.23699 Sec. V D)
 model.vector_asymmetry(kin, alpha_p, pT, "parallel")     # A^V_par   -> Eq. (6.4)
 model.tensor_asymmetry(kin, alpha_p, pT, "perp")         # A^T_perp  -> Eq. (6.16)
 
@@ -67,22 +73,22 @@ Only the nucleon structure functions change. The deuteron side (LF distributions
 kinematics) is identical for both, because the wave functions are isospin symmetric and
 the average nucleon mass m is used throughout; `alpha_p`, `pT`, `phi_p` and the
 distributions `P.*` then refer to the detected spectator and the active nucleon,
-whichever is which. The paper writes all formulas for proton tagging (Eq. 2.2).
+whichever is which. arXiv:2603.23700 writes all formulas for proton tagging (Eq. 2.2).
 
 ## Layout
 
-| module | content | paper |
+| module | content | sections of arXiv:2603.23700 |
 |---|---|---|
 | `wavefunctions.py` | AV18 / CD-Bonn / Paris Yukawa parametrizations, U, W, f₀, f₂ | Eqs. (3.23)–(3.25) |
 | `densities.py` | LF neutron distributions P[deuteron, neutron], probabilities R | Sec. IV, Eqs. (4.18)–(4.53) |
 | `nucleon.py` | nucleon SF providers: SLAC/Bodek F₂ + R, GRSV2000 g₁ + WW g₂, LHAPDF, grid wrapper | Sec. VI A |
-| `crosssection.py` | tagged SFs, Part I master formula, σ_red, dσ, polarization, asymmetries | Secs. II, V, VI; Part I Secs. IV–V |
+| `crosssection.py` | tagged SFs, master formula of arXiv:2603.23699, σ_red, dσ, polarization, asymmetries | Secs. II, V, VI; arXiv:2603.23699 Secs. IV–V |
 | `sumrules.py` | integrals over the spectator momentum | Eqs. (4.23)–(4.25), App. A |
 
 ## Conventions (read this)
 
 * **Units:** GeV throughout (the C++ code uses MeV).
-* **D-wave sign:** the paper's formulas assume a **positive** momentum-space D wave,
+* **D-wave sign:** arXiv:2603.23700's formulas assume a **positive** momentum-space D wave,
   W(k) > 0 at small k. `DeuteronWavefunction` enforces this explicitly, independently of
   the sign convention of the tabulated coefficients (`d_wave_sign`). For the three
   shipped sets it coincides with the C++ `GetWp`.
@@ -94,14 +100,14 @@ whichever is which. The paper writes all formulas for proton tagging (Eq. 2.2).
 * **Tensor distributions** are those of the normalized spherical tensors (Eq. 4.19). The
   C++ `getLFdistributions_new` output differs by √(3/2), √2, 1/√2 (T_LL, T_LT, T_TT).
 * **Tagging:** `TaggedDIS(..., tagged="p")` (default) or `"n"`; see above. Function and
-  attribute names follow the paper's proton-tagging notation in both cases.
+  attribute names follow arXiv:2603.23700's proton-tagging notation in both cases.
 * **x** is the rescaled variable x = 2x_D ∈ (0, 2). x_n = x/(2−α_p). The kinematic limit
   α_p < 2 − x gives zero outside it, and unphysical y gives zero cross section.
-* **λₑ = ±½** enters as 2λₑ (Part I). Polarization angles are measured relative to the
-  lepton plane. `Polarization.beam(...)` implements Part I Sec. V A, with exact γ unless
+* **λₑ = ±½** enters as 2λₑ (arXiv:2603.23699). Polarization angles are measured relative to the
+  lepton plane. `Polarization.beam(...)` implements arXiv:2603.23699 Sec. V A, with exact γ unless
   `dis_limit=True`.
-* **Structure functions:** the paper's IA expressions (5.12), (5.14)–(5.16), (5.26)–(5.27)
-  are used verbatim, including the power-suppressed ones (the paper calls these rough
+* **Structure functions:** arXiv:2603.23700's IA expressions (5.12), (5.14)–(5.16), (5.26)–(5.27)
+  are used verbatim, including the power-suppressed ones (arXiv:2603.23700 calls these rough
   estimates). T-odd structures are zero in the IA.
 
 ## Nucleon structure input
@@ -116,7 +122,7 @@ tabulates any provider for speed. `LHAPDFStructure("CT18LO", "NNPDFpol11_100")` 
 parton-model F₂ and g₁ from LHAPDF6 sets. It is untested here because the `lhapdf` module
 was not installed.
 
-Note: the paper's text quotes DSSV09 for g₁ⁿ, but the C++ code (and thus the figures)
+Note: the text of arXiv:2603.23700 quotes DSSV09 for g₁ⁿ, but the C++ code (and thus the figures)
 uses GRSV2000 LO. These are different fits (GRSV2000: PRD 63, 094005 (2001); DSSV09:
 PRD 80, 034030 (2009)).
 
@@ -128,12 +134,12 @@ PRD 80, 034030 (2009)).
 * F₂, g₁ vs. C++ `NucleonStructure`: ~10⁻⁶. WW g₁+g₂ vs. adaptive quadrature and vs.
   the fixed C++: ~10⁻⁴.
 * Sum rules (4.23)–(4.25) and Table III integrals: I_[SL] = 0.911, δ∥ = 0.125,
-  δ⊥ = 0.0513, ε_[SL] = −0.0571 (paper −0.0568), ε_[ST] = 0.0550.
+  δ⊥ = 0.0513, ε_[SL] = −0.0571 (arXiv:2603.23700: −0.0568), ε_[ST] = 0.0550.
 * x-integrated momentum (5.19), spin (5.29) and Burkhardt–Cottingham (5.34) sum rules
   for the tagged structure functions. These use analytic toy nucleon SFs, so the
   expected values are exact.
 * Closed-form asymmetries (6.4), (6.8), (6.12), (6.16) and the Table II extremes reproduced
-  by the generic pure-state construction of Part I.
+  by the generic pure-state construction of arXiv:2603.23699.
 * Proton vs neutron tagging: identical deuteron distributions, and every tagged structure
   function scales exactly with the corresponding proton/neutron input (e.g. the
   unpolarized cross-section ratio equals (F_T + εF_L)_p/(F_T + εF_L)_n; A^V_∥ changes
@@ -142,7 +148,7 @@ PRD 80, 034030 (2009)).
 ## Issues found in existing material while porting
 
 Items 1 and 2 are fixed in the plot scripts, the C++ and the data (see
-[docs/DEVELOPMENT_NOTES.md](docs/DEVELOPMENT_NOTES.md#status-of-fixes)); the paper's figures
+[docs/DEVELOPMENT_NOTES.md](docs/DEVELOPMENT_NOTES.md#status-of-fixes)); arXiv:2603.23700's figures
 still need to be regenerated from them.
 
 1. **Fig. 12 was ~30% too small** in the draft. The plot scripts `tagdeut_ALL_ALT.py`,
@@ -162,7 +168,7 @@ still need to be regenerated from them.
    cos(φ_p−φ_TL) factors of Eq. (4.22) under the φ_p integration. The "traceless"
    argument applies to T_LL only.
 4. **Eq. (5.16c)** writes the partner structure as cos(3φ_p − φ_TT). The master formula
-   (Part I Eq. 4.39) has cos(3φ_p − 2φ_TT), and that is what is used here.
+   (arXiv:2603.23699 Eq. 4.39) has cos(3φ_p − 2φ_TT), and that is what is used here.
 5. Minor: ω₂(AV18) = 0.0578 from the parametrization (exact closed form) vs 0.0576 in
    Table III. A 1.2 GeV cutoff (the C++ interpolation range) only gives 0.0577, so the
    origin of the difference is unclear.

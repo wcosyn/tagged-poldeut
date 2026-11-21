@@ -49,7 +49,7 @@ def test_unpolarized_sum_rules(av18):
 def test_tensor_integrals(av18):
     """Eq. (4.25): T_LL integrates to zero with both weights, T_LT with weight 1.
 
-    Notes on the paper's "(same for T_LT, T_TT)":
+    Notes on arXiv:2603.23700's "(same for T_LT, T_TT)":
     * P[T_TT,U] alone does *not* integrate to zero (it is ~ sin^2 theta_k);
     * (2-alpha_p) P[T_LT,U] does not either ((2-alpha_p) = 1 - k cos(theta_k)/E is
       not even in cos(theta_k)).

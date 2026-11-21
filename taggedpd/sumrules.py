@@ -1,4 +1,4 @@
-r"""Integrals of the LF distributions over the spectator momentum (paper Sec. IV, App. A).
+r"""Integrals of the LF distributions over the spectator momentum (arXiv:2603.23700 Sec. IV, App. A).
 
 The integration measure :math:`\int d\alpha_p/\alpha_p\, d^2p_{pT}` is converted to the
 pn c.m. momentum (Eq. (3.21)):

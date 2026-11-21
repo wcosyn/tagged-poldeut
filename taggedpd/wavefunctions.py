@@ -28,12 +28,12 @@ coefficients are overwritten).
 Normalization and sign conventions
 ----------------------------------
 * ``U``/``W`` are normalized as :math:`\int_0^\infty dk\,k^2 [U^2 + W^2] = 1`
-  (standard nonrelativistic normalization, paper Eq. (3.25) with
+  (standard nonrelativistic normalization, arXiv:2603.23700 Eq. (3.25) with
   :math:`f_{L,\rm nr} = U_L/\sqrt{4\pi}`).
 * With Yukawa terms the norm integrals are known in closed form,
   :math:`\int_0^\infty dk\,k^2 U^2 = \sum_{ij} C_i C_j/(m_i+m_j)`, which gives an
   *exact* reference for the normalization tests (see ``norm_S`` / ``norm_D``).
-* **D-wave sign.** The paper's formulas (e.g. the node of
+* **D-wave sign.** arXiv:2603.23700's formulas (e.g. the node of
   :math:`f_0 - f_2/\sqrt{2}` at k ~ 0.3 GeV, the extremal tensor asymmetry at
   :math:`f_2/f_0=\sqrt{2}`) assume a **positive** D wave in momentum space,
   i.e. :math:`W(k) > 0` at small k (where :math:`W \propto k^2`). This is
@@ -42,7 +42,7 @@ Normalization and sign conventions
   tabulated D coefficients. For the three parametrizations shipped here this
   agrees with the C++ ``GetWp`` (the factor ``d_wave_sign`` is +1), which is
   verified in the test-suite.
-* Light-front radial functions (paper Eq. (3.24)):
+* Light-front radial functions (arXiv:2603.23700 Eq. (3.24)):
   :math:`f_L(k) = \sqrt{E(k)}\, f_{L,\rm nr}(k) = \sqrt{E(k)/(4\pi)}\, U_L(k)`,
   normalized as :math:`4\pi\int dk\, k^2/E\,[f_0^2+f_2^2] = 1` (Eq. (3.23)).
 
@@ -177,7 +177,7 @@ class DeuteronWavefunction:
         return self.d_wave_sign * self._yukawa_sum(-self._d, k)
 
     # ------------------------------------------------------------------
-    # light-front radial functions, paper Eq. (3.24)
+    # light-front radial functions, arXiv:2603.23700 Eq. (3.24)
     # ------------------------------------------------------------------
     @staticmethod
     def energy(k):
@@ -221,7 +221,7 @@ class DeuteronWavefunction:
 
     @property
     def norm_D(self):
-        """Exact D-state probability  int dk k^2 W^2 = omega_2 (paper Eq. (A7))."""
+        """Exact D-state probability  int dk k^2 W^2 = omega_2 (arXiv:2603.23700 Eq. (A7))."""
         return self._pair_integral(self._d, self._d)
 
     @property

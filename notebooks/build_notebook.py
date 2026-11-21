@@ -24,19 +24,19 @@ def code(s):
 
 # ---------------------------------------------------------------------------
 md(r"""
-# Tagged DIS on the polarized deuteron — paper figures
+# Tagged DIS on the polarized deuteron — figures of arXiv:2603.23700
 
-Reproduces the figures of W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a
-polarized spin-1 target. II. Deuteron and spectator nucleon tagging* (JLAB-THY-26-4661)
+Reproduces the figures of W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. II. Deuteron and spectator nucleon tagging*, Phys. Rev. C **114**, 025202 (2026), [arXiv:2603.23700](https://arxiv.org/abs/2603.23700) (JLAB-THY-26-4661)
 with the standalone `taggedpd` package, and cross-checks against output of the
 `physics-code` C++ implementation (`Poldeut`, `NucleonStructure`).
 
-Inputs as in the paper (Sec. VI A): AV18 deuteron wave function (CD-Bonn for the model
+Inputs as in arXiv:2603.23700 (Sec. VI A): AV18 deuteron wave function (CD-Bonn for the model
 comparison), SLAC/Bodek $F_{2n}$ with $R = 0.18$, polarized $g_{1n}$ from GRSV2000 LO
-(the C++ code uses GRSV2000; the paper text quotes DSSV09) and $g_{2n}$ from the
+(the C++ code uses GRSV2000; the text of arXiv:2603.23700 quotes DSSV09) and $g_{2n}$ from the
 Wandzura–Wilczek relation.
 
-Figure numbers refer to the paper. Equation numbers likewise, "Part I" = the companion paper.
+Figure and equation numbers refer to arXiv:2603.23700; the companion paper is
+W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. I. Cross section and spin observables*, Phys. Rev. C **114**, 025201 (2026), [arXiv:2603.23699](https://arxiv.org/abs/2603.23699) (JLAB-THY-26-4663).
 """)
 
 code(r"""
@@ -80,7 +80,7 @@ closed form, $\sum_{ij}C_iC_j/(m_i+m_j)$, which the test-suite compares with num
 The D wave is positive by convention ($W(k)>0$ at small $k$).
 
 The table below shows the integrals of the LF distributions (Eqs. 4.23–4.25 and Table III, "exact"
-column of the paper: $I_{[S_L]} = 0.911$, $\delta^\parallel = 0.125$, $\delta^\perp = 0.0512$,
+column of arXiv:2603.23700: $I_{[S_L]} = 0.911$, $\delta^\parallel = 0.125$, $\delta^\perp = 0.0512$,
 $\varepsilon_{[S_L]} = -0.0568$, $\varepsilon_{[S_T]} = 0.0550$, $\omega_2 = 0.0576$ for AV18).
 
 *Note:* $P_{[T_{TT},U]}$ alone, and $(2-\alpha_p)P_{[T_{LT},U]}$, do **not** integrate to zero; they only drop
@@ -162,7 +162,7 @@ fig.colorbar(c, ax=ax[0, 0])
 for axx, data, lab in ((ax[0, 1], P.TLL_U, r'$P_{[T_{LL},U]}$'), (ax[1, 0], P.TLT_U, r'$P_{[T_{LT},U]}$'),
                        (ax[1, 1], P.TTT_U, r'$P_{[T_{TT},U]}$')):
     from matplotlib.ticker import MaxNLocator
-    lev = MaxNLocator(12).tick_values(np.nanmin(data), np.nanmax(data))   # full range, as in the paper
+    lev = MaxNLocator(12).tick_values(np.nanmin(data), np.nanmax(data))   # full range, as in arXiv:2603.23700
     lim = np.max(np.abs(lev)) * 2.0                                       # lighter colours, zero = white
     c = axx.contourf(A, PT, data, levels=lev, cmap='RdBu_r', norm=colors.TwoSlopeNorm(0, -lim, lim))
     fig.colorbar(c, ax=axx); axx.text(0.97, 0.93, lab + r' [GeV$^{-2}$]', transform=axx.transAxes, ha='right', va='top')
@@ -222,10 +222,10 @@ md(r"""
 
 ### Fig. 9 / Fig. 15 — unpolarized differential cross section
 $d\sigma_U/dx\,dQ^2\,(d\alpha_p/\alpha_p)\,d^2p_{pT}$ [nb/GeV$^4$], $\phi_p$-averaged, at fixed $x_n = 0.05$,
-$Q^2 = 6$ GeV$^2$, and $s = 800$ GeV$^2$ **per nucleon** (5×41 GeV; this is the convention of the paper's
+$Q^2 = 6$ GeV$^2$, and $s = 800$ GeV$^2$ **per nucleon** (5×41 GeV; this is the convention of arXiv:2603.23700's
 plot script, which gives the quoted $\epsilon = 0.98$; `Kinematics.from_s(..., per_nucleon=True)`).
 
-**Discrepancy with the paper figure.** The plot scripts for Figs. 9 and 15
+**Discrepancy with the arXiv:2603.23700 figure.** The plot scripts for Figs. 9 and 15
 (`tagdeut_unpolcross_log.py`, `tagdeut_unpolcross_ndep.py`) convert to nb with `0.197*0.197*10E07`;
 `10E07` = $10^8$ instead of $10^7$, so the published curves are **10× too large**. Thin dotted:
 script emulation (×10). The model-dependence ratio of Fig. 15 is unaffected.
@@ -252,7 +252,7 @@ ax[1].set_ylim(1, 1e4); ax[1].legend(); ax[1].set_title(r'Fig. 15, $\alpha_p = 1
 ax[1].set_xlabel(r'$p_{pT}$ [GeV]')
 fig.tight_layout(); save(fig, 'fig09_15')
 r = model_cdb.dsigma(kin, a, 0.5, phi_averaged=True) / model.dsigma(kin, a, 0.5, phi_averaged=True)
-print(f'CDBonn/AV18 at pT = 0.5 GeV: {float(r):.2f}   (paper: ~0.6)')
+print(f'CDBonn/AV18 at pT = 0.5 GeV: {float(r):.2f}   (arXiv:2603.23700: ~0.6)')
 """)
 
 md(r"""
@@ -280,7 +280,7 @@ ax.set_title('Fig. 10'); fig.tight_layout(); save(fig, 'fig10')
 md(r"""
 ### Fig. 11 / Fig. 16 — vector-polarized structure function ratio $F_{[LS_L]D}/\Sigma_\parallel F_D$ (Eq. 6.5)
 $x_n = 0.1$, $Q^2 = 2$ GeV$^2$, $\epsilon = 0.8$. The cross-check line uses `vector_asymmetry`
-(two-state double-spin asymmetry from pure deuteron states, Part I) divided by $D_{\parallel[S_L]} = \sqrt{1-\epsilon^2}$.
+(two-state double-spin asymmetry from pure deuteron states, arXiv:2603.23699) divided by $D_{\parallel[S_L]} = \sqrt{1-\epsilon^2}$.
 """)
 
 code(r"""
@@ -318,7 +318,7 @@ md(r"""
 sum that overestimates $|g_1+g_2|$ by 7.5% at $x = 0.1$. Together these made the draft curves
 ~30% too small. Both are fixed now (scripts corrected, C++ WW fixed in physics-code `e9d1e6a`,
 `neutron_SF*.txt` regenerated); the corrected scripts reproduce the solid curves. Solid: correct ($\gamma_n = 2x_nm/Q$, accurate WW). Thin dotted: emulating the
-script (`ww='cpp'`, $\gamma_n \to 2x_n\cdot0.93/Q^2$), which reproduces the paper's values
+script (`ww='cpp'`, $\gamma_n \to 2x_n\cdot0.93/Q^2$), which reproduces arXiv:2603.23700's values
 (e.g. ≈0.0075 at $\alpha_p = 1$, $p_{pT} = 0$).
 """)
 
@@ -338,7 +338,7 @@ for a, st in styles.items():
     ax.plot(pT, ratio_perp(model, a, pT), st, label=rf'$\alpha_p={a}$')
     ax.plot(pT, ratio_perp(model_cpp_ww, a, pT, True), st[0] + ':', lw=0.7)
 ax.axhline(0, c='0.5', ls='--', lw=0.8); ax.legend(fontsize=9); ax.set_xlabel(r'$p_{pT}$ [GeV]')
-ax.set_ylabel(r'$F^{\cos\phi_S}_{[L,S_T]D}/\Sigma_\perp F_D$'); ax.set_title('Fig. 12 (thin: paper-script emulation)')
+ax.set_ylabel(r'$F^{\cos\phi_S}_{[L,S_T]D}/\Sigma_\perp F_D$'); ax.set_title('Fig. 12 (thin: original-script emulation)')
 fig.tight_layout(); save(fig, 'fig12')
 print('alpha_p=1, pT=0:  correct', float(ratio_perp(model, 1.0, 0.0)),
       '  script emulation', float(ratio_perp(model_cpp_ww, 1.0, 0.0, True)))
@@ -346,7 +346,7 @@ print('alpha_p=1, pT=0:  correct', float(ratio_perp(model, 1.0, 0.0)),
 
 md(r"""
 ### Fig. 13 / Fig. 17 — tensor-polarized asymmetry $A^T_\parallel$ (Eq. 6.12)
-Computed from pure deuteron states $\Lambda = \pm1, 0$ along the beam (Part I Eq. AT_gen) in the DIS
+Computed from pure deuteron states $\Lambda = \pm1, 0$ along the beam (arXiv:2603.23699 Eq. AT_gen) in the DIS
 limit — it reduces to $\sqrt{2/3}\,P_{[T_{LL},U]}/P_{[U,U]}$ (checked in the tests). Range $[-2, 1]$.
 """)
 

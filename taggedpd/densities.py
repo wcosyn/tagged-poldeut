@@ -1,7 +1,7 @@
 r"""Light-front momentum distributions of the active neutron in the deuteron.
 
-Implements Sec. IV of Cosyn & Weiss, *SIDIS on a polarized spin-1 target II*
-(referred to as "the paper"; equation numbers below refer to it).
+Implements Sec. IV of W. Cosyn and C. Weiss, Phys. Rev. C 114, 025202 (2026),
+arXiv:2603.23700; equation numbers below refer to it.
 
 Variables
 ---------
@@ -22,7 +22,7 @@ and every distribution depends on (alpha_p, pT) only.
 Normalized distributions (all in GeV^{-2}, include the flux factor 1/(2-alpha_p))
 --------------------------------------------------------------------------------
 =================  ==========================================  ===========
-attribute          meaning                                     paper eq.
+attribute          meaning                                     eq.
 =================  ==========================================  ===========
 ``UU``             unpolarized n in unpolarized D              (4.18)
 ``TLL_U``          unpolarized n, T_LL tensor-polarized D      (4.19)
@@ -36,7 +36,7 @@ attribute          meaning                                     paper eq.
 =================  ==========================================  ===========
 
 The tensor distributions are those of the *normalized* spherical tensors
-e_LL, e_LT, e_TT (paper Eqs. (4.19)-(4.20)); the factors sqrt(3/2), sqrt(2),
+e_LL, e_LT, e_TT (arXiv:2603.23700 Eqs. (4.19)-(4.20)); the factors sqrt(3/2), sqrt(2),
 1/sqrt(2) of Eq. (2.27) are applied where the general-polarization
 distribution is assembled (Eq. (4.22)) and in the structure functions.
 
@@ -107,7 +107,7 @@ def spectator_lf_from_rest_frame(p_vec, M_D=None, m=M_NUCLEON):
 class NeutronDistributions:
     """Container for the normalized LF neutron distributions [GeV^-2].
 
-    Attribute names follow the paper's labels ``P_[deuteron, neutron]``
+    Attribute names follow arXiv:2603.23700's labels ``P_[deuteron, neutron]``
     (see the table in the module docstring). Arrays have the broadcast shape of
     the (alpha_p, pT) input.
     """
