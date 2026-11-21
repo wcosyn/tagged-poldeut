@@ -13,7 +13,8 @@ with the cross-section decomposition of
 * W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. I. Cross section and spin observables*, Phys. Rev. C **114**, 025201 (2026), [arXiv:2603.23699](https://arxiv.org/abs/2603.23699) (JLAB-THY-26-4663).
 
 Equation, section, table and figure numbers refer to the arXiv versions. It is a port of the relevant
-parts of `physics-code` (`Poldeut`, `TDeuteron`/`TYukawaPWF`, `NucleonStructure`), aimed
+parts (`Poldeut`, `TDeuteron`/`TYukawaPWF`, `NucleonStructure`) of the C++ code
+[`nucqcd`](https://github.com/wcosyn/nucqcd) (formerly `physics-code`), aimed
 at use in an MC event generator. There is no numerical integration at run time: about
 3 µs per event, vectorized.
 
@@ -155,7 +156,7 @@ still need to be regenerated from them.
    `tagdeut_ALL_ALT_pt.py` and `tagdeut_ALL_g2.py` used `gamma = 2.*x_n*0.93/Q2` instead
    of `/np.sqrt(Q2)`. On top of that, the C++ WW integral `getG1plusg2_grsv2000` was a
    101-point left Riemann sum that overestimated |g₁+g₂| by 7.5% at x = 0.1, and by a
-   factor ~3 at x = 0.002 (fixed in physics-code commit `e9d1e6a`). Correct value at
+   factor ~3 at x = 0.002 (fixed in nucqcd commit `e9d1e6a`). Correct value at
    α_p = 1, p_T = 0: 0.0098 (draft: ≈0.0075). `GRSV2000Structure(ww="cpp")` reproduces
    the old C++ numbers.
 2. **Figs. 9 and 15 were 10× too large.** `tagdeut_unpolcross_log.py` and

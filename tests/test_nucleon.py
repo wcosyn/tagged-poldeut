@@ -14,13 +14,13 @@ REF = os.path.join(os.path.dirname(__file__), "reference")
 
 @pytest.fixture(scope="module")
 def cppref():
-    """physics-code neutron_sf output after the WW fix (commit e9d1e6a)."""
+    """nucqcd neutron_sf output after the WW fix (commit e9d1e6a)."""
     return np.loadtxt(os.path.join(REF, "neutron_SF.txt.gz"))
 
 
 @pytest.fixture(scope="module")
 def cppref_old():
-    """physics-code output with the old 101-point Riemann-sum WW (pre-e9d1e6a)."""
+    """nucqcd output with the old 101-point Riemann-sum WW (pre-e9d1e6a)."""
     return np.loadtxt(os.path.join(REF, "neutron_SF_oldWW.txt.gz"))
 
 

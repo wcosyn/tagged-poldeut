@@ -28,7 +28,7 @@ md(r"""
 
 Reproduces the figures of W. Cosyn & C. Weiss, *Semi-inclusive deep-inelastic scattering on a polarized spin-1 target. II. Deuteron and spectator nucleon tagging*, Phys. Rev. C **114**, 025202 (2026), [arXiv:2603.23700](https://arxiv.org/abs/2603.23700) (JLAB-THY-26-4661)
 with the standalone `taggedpd` package, and cross-checks against output of the
-`physics-code` C++ implementation (`Poldeut`, `NucleonStructure`).
+`nucqcd` C++ implementation (`Poldeut`, `NucleonStructure`).
 
 Inputs as in arXiv:2603.23700 (Sec. VI A): AV18 deuteron wave function (CD-Bonn for the model
 comparison), SLAC/Bodek $F_{2n}$ with $R = 0.18$, polarized $g_{1n}$ from GRSV2000 LO
@@ -316,7 +316,7 @@ md(r"""
 (`tagdeut_ALL_ALT*.py`) computed $\gamma_n$ as `2*x_n*0.93/Q2` instead of $2x_nm/Q$
 (Eq. 5.22), and took $g_1+g_2$ from the then C++ Wandzura–Wilczek routine, a 101-point Riemann
 sum that overestimates $|g_1+g_2|$ by 7.5% at $x = 0.1$. Together these made the draft curves
-~30% too small. Both are fixed now (scripts corrected, C++ WW fixed in physics-code `e9d1e6a`,
+~30% too small. Both are fixed now (scripts corrected, C++ WW fixed in nucqcd `e9d1e6a`,
 `neutron_SF*.txt` regenerated); the corrected scripts reproduce the solid curves. Solid: correct ($\gamma_n = 2x_nm/Q$, accurate WW). Thin dotted: emulating the
 script (`ww='cpp'`, $\gamma_n \to 2x_n\cdot0.93/Q^2$), which reproduces arXiv:2603.23700's values
 (e.g. ≈0.0075 at $\alpha_p = 1$, $p_{pT} = 0$).

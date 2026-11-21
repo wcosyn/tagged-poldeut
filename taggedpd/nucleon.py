@@ -39,7 +39,7 @@ input used for arXiv:2603.23700's figures.
 
 Target-mass corrections
 -----------------------
-In the strict DIS limit :math:`F_1 = F_2/(2x(1+R))`. The physics-code C++
+In the strict DIS limit :math:`F_1 = F_2/(2x(1+R))`. The nucqcd C++
 (and hence arXiv:2603.23700's figures) uses :math:`F_1 = (1+\gamma^2)F_2/(2x(1+R))`
 with :math:`\gamma^2 = 4m^2x^2/Q^2`; this is the default here
 (``target_mass=True``), pass ``target_mass=False`` for the strict limit.
@@ -143,7 +143,7 @@ class CombinedStructure(NucleonStructure):
 def r1998(x, Q2):
     """R = sigma_L/sigma_T, E143 fit [K. Abe et al., PLB 452 (1999) 194].
 
-    Port of ``R1998`` in physics-code ``Tools/R199x.f``; valid for
+    Port of ``R1998`` in nucqcd ``Tools/R199x.f``; valid for
     0.005 < x < 0.86, 0.5 < Q2 < 130 GeV^2.
     """
     x = np.asarray(x, float)
@@ -254,7 +254,7 @@ class SLACStructure(NucleonStructure):
         Constant R (default 0.18, as used for arXiv:2603.23700's figures) or the E143 fit.
     target_mass : bool
         Include the factor (1+gamma^2), gamma^2 = 4 m^2 x^2/Q^2, in F1 (default
-        True, as in the physics-code C++ that produced arXiv:2603.23700's figures);
+        True, as in the nucqcd C++ that produced arXiv:2603.23700's figures);
         False gives the strict DIS-limit relation F1 = F2/(2x(1+R)).
     """
 
@@ -345,8 +345,8 @@ class GRSV2000Structure(NucleonStructure):
         Number of log-spaced x nodes for the WW table (default 400).
     ww : {"exact", "cpp"}
         ``"exact"`` (default): accurate WW integral (agrees with adaptive
-        quadrature to ~1e-4; agrees with physics-code since commit e9d1e6a).
-        ``"cpp"``: reproduce the 101-point left Riemann sum that physics-code
+        quadrature to ~1e-4; agrees with nucqcd since commit e9d1e6a).
+        ``"cpp"``: reproduce the 101-point left Riemann sum that nucqcd
         ``getG1plusg2_grsv2000`` used *before* that fix, which overestimates
         |g1+g2| (7.5% at x=0.1, factor ~3 at x=0.002). Only meant for
         reproducing older C++ output, e.g. the draft's Fig. 12.
