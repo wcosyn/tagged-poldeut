@@ -253,9 +253,29 @@ choice of $K$.
 | `"F_L_scaling"` | $\frac{F_2}{x_N}-2F_1$ | $\frac{F_2^D}{x_D}-2F_1^D$ | $=F_T\frac{R-\gamma^2}{1+\gamma^2}$, scaling limit $\gamma\to0$, arXiv:2603.23700 Eq. (5.10) |
 | `"xF_L"` | $(1+\gamma^2)F_2-2x_NF_1=x_NF_L$ | $(1+\gamma^2)F_2^D-2x_DF_1^D=x_DF_L$ | the "$F_L$" of Christy–Bosted/SIMC and many DIS papers |
 
-Callan–Gross reads $F_2=2x_NF_1$ for p, n and $F_2^D=2x_DF_1^D$ for d. In the scaling limit
-$F_2^D\approx F_2^p+F_2^n$, so $F_1^D\approx2(F_1^p+F_1^n)$. The $F_1$-type deuteron functions
-($F_1$, $F_T$, $F_L$, $F_L$ scaling) are therefore about 4× the average of p and n, $F_2$ about 2×.
+*Deuteron vs p, n.* For a deuteron made of free nucleons at rest relative to it (impulse
+approximation without Fermi motion and binding) the hadronic tensors add at the same $\nu$ and
+$Q^2$, i.e. at the same input $W$:
+
+$$
+W_1^D\approx W_1^p+W_1^n,\qquad W_2^D\approx W_2^p+W_2^n .
+$$
+
+In the conventions used here ($F_1=M_TW_1$, $F_2=\nu W_2$, $x_N=\frac{M_D}{M}x_D\approx2x_D$) this reads
+
+$$
+F_2^D(x_D,Q^2)\approx F_2^p(x_N,Q^2)+F_2^n(x_N,Q^2),\qquad
+F_1^D(x_D,Q^2)\approx\frac{M_D}{M}\left[F_1^p(x_N,Q^2)+F_1^n(x_N,Q^2)\right],
+$$
+
+consistent with Callan–Gross, $F_2=2x_NF_1$ for p, n and $F_2^D=2x_DF_1^D$ for d. The $F_1$-type
+deuteron functions ($F_1$, $F_T$, $F_L$, $F_L$ scaling) are therefore about 4× the average of p
+and n ($\frac{M_D}{M}\approx2$ times their sum), $F_2$ about 2×. $\sigma_T$, $\sigma_L$ (same $K$) add like
+$W_1$, $W_2$, and $R^D$ is the $W_1$-weighted average of $R^p$, $R^n$. The Christy–Bosted
+deuteron fit adds Fermi smearing and the MEC term on top of this sum. Its $W_1^D/(W_1^p+W_1^n)$
+is 0.97–0.99 for $W$ = 2–2.8 GeV at $Q^2$ = 0.5–5 GeV², and 0.65–0.85 at the Δ
+($W$ = 1.23 GeV), where smearing lowers and broadens the peak. $W_2$ behaves the same way.
+In the Fortran convention ($F_1=MW_1$ for d too) the relation is simply $F_1^D\approx F_1^p+F_1^n$.
 
 The low-level Fortran ports (`christy_bosted`, `christy_bosted21`) use a different
 convention for d. Their deuteron is also the whole deuteron, but $F_1=MW_1$ with the

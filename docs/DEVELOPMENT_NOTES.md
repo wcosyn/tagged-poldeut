@@ -353,8 +353,17 @@ structure functions with the deuteron as the target, so the two did not match.
 | Hand flux for d | Keep the free-nucleon K = (W² − M²)/2M = ν − Q²/2M, not K_D = ν − Q²/2M_D | Used by the fits and the data they were fitted to. Γσ_T, W1, W2, R and all F's are independent of the choice; σ_T(K_D) = σ_T K/K_D (equal at Q² = 0, ≈0.72 at Q² = 0.5, W = 1.232; ≈0.73 at Q² = 1, W = 1.5) |
 | Relation to tagged DIS | The arXiv:2603.23700 variable x = 2x_D ∈ (0, 2] (used by `TaggedDIS`) is *not* used in the inclusive layer, which labels d by x_D | Avoids mixing x_N, x_D and x; all three are spelled out in the README variables table |
 
-In the scaling limit F2^D ≈ F2p + F2n and F1^D ≈ 2(F1p + F1n): the F1-type deuteron
-functions are about 4× the nucleon average, F2 about 2×.
+**Relation to p, n.** For free nucleons at rest in the deuteron (no Fermi motion, no
+binding) the hadronic tensors add at the same (ν, Q²), i.e. at the same input W:
+W1^D ≈ W1p + W1n and W2^D ≈ W2p + W2n. In the present conventions, with
+x_N = (M_D/M) x_D ≈ 2x_D, this gives F2^D(x_D) ≈ F2p(x_N) + F2n(x_N) and
+F1^D(x_D) ≈ (M_D/M)[F1p(x_N) + F1n(x_N)]. The F1-type deuteron functions are therefore about
+4× the nucleon average, F2 about 2×. σ_T, σ_L add like W1, W2 (same K), and R^D is the
+W1-weighted average. (Earlier text wrote F1^D ≈ 2(F1p + F1n); the exact factor is M_D/M.)
+Check with the Christy–Bosted 2009 deuteron fit, which adds Fermi smearing and MEC:
+W1^D/(W1p + W1n) and W2^D/(W2p + W2n) are 0.97–0.99 for W = 2–2.8 GeV at Q² = 0.5–5 GeV²,
+and 0.65–0.85 at the Δ (W = 1.23), where smearing lowers and broadens the peak.
+In the Fortran convention (F1 = M W1 for d too) the relation is F1^D ≈ F1p + F1n.
 
 **Docs.** README, the `inclusive` module docstring and both notebooks got an explicit
 variables table (ν, W as a way of specifying ν for d, x_N / x_D / arXiv:2603.23700 x with their ranges), Hand's flux and

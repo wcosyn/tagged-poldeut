@@ -165,9 +165,14 @@ quantity        definition                                    remarks
 
 Notes:
 
-* Deuteron (arXiv:2603.23700): F1^D = M_D W1, F2^D = nu W2, Callan-Gross F2^D = 2 x_D F1^D. In the
-  scaling limit F2^D ~ F2p + F2n and F1^D ~ 2 (F1p + F1n): the F1-type deuteron functions
-  are about **4x** the nucleon average, F2 about 2x.
+* Deuteron (arXiv:2603.23700): F1^D = M_D W1, F2^D = nu W2, Callan-Gross F2^D = 2 x_D F1^D.
+  For free nucleons at rest in the deuteron (no Fermi motion, no binding) the hadronic
+  tensors add at the same (nu, Q^2), i.e. at the same input W:
+  W1^D ~ W1p + W1n and W2^D ~ W2p + W2n. In terms of the F's, with x_N = (M_D/M) x_D ~ 2 x_D:
+  F2^D(x_D) ~ F2p(x_N) + F2n(x_N) and F1^D(x_D) ~ (M_D/M) [F1p(x_N) + F1n(x_N)]. So the
+  F1-type deuteron functions are about **4x** the nucleon average, F2 about 2x;
+  sigma_T, sigma_L add like W1, W2. The Christy-Bosted deuteron fit adds Fermi smearing and
+  MEC: W1^D/(W1p + W1n) ~ 0.97-0.99 at W = 2-2.8, but 0.65-0.85 at the Delta.
 * The low-level ports (:mod:`taggedpd.christy_bosted`, :mod:`taggedpd.christy_bosted21`)
   keep the Fortran convention for d: per nucleus, but F1 = M W1 with x_N in (0, 2], i.e.
   F1^D = (M_D/M) F1_Fortran. F2, R, gamma, x F1 and "xF_L" agree between the two.
