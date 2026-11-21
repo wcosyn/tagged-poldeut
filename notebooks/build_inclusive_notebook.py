@@ -113,7 +113,25 @@ $$\frac{F_1^{d,\rm Fortran}(W^2,Q^2)}{2} \;=\; \sum_i w_i\,\bar F_1\big(W'^2_i,Q
 a Fermi smearing over the deuteron momentum distribution (tabulated bins $p_z$, $\langle p^2\rangle$,
 weights; the struck nucleon is off shell with energy $M_d-\sqrt{M^2+p^2}$), plus an empirical,
 purely transverse term filling the dip between the quasi-elastic peak and the $\Delta$. The parameters
-of $\bar F_1$ and the MEC term are fitted to inclusive deuteron data. The neutron follows as
+of $\bar F_1$ and the MEC term are fitted to inclusive deuteron data.
+
+*Normalizations.* With $W_1^d$ the hadronic tensor of the whole deuteron, three normalizations
+appear, each about half the one before:
+
+| quantity | definition | scaling limit |
+|---|---|---|
+| $F_1^D$ (Part II, `inclusive_sf`) | $M_DW_1^d$ | $\approx 2(F_{1p}+F_{1n})$ |
+| $F_1^{d,\rm Fortran}$ (`f1f2in09('d')`) | $MW_1^d=\frac{M}{M_D}F_1^D$: whole deuteron, nucleon mass | $\approx F_{1p}+F_{1n}$ |
+| $\frac{F_1^{d,\rm Fortran}}{2}$ (`resd`) | $\frac12MW_1^d$: also divided by $A=2$ | $\approx\bar F_1$ |
+
+$F_1^{d,\rm Fortran}$ is per nucleus: it already uses the nucleon mass, but it is not yet divided
+by $A$. The $\frac12$ in the equation above is that division by $A$. It puts the left-hand side
+on the same footing as the free-nucleon average $\bar F_1$. The smearing weights are normalized,
+$\sum_iw_i=1$, so without binding and Fermi motion the equation reduces to
+$\frac{F_1^{d,\rm Fortran}}{2}=\bar F_1$. Altogether $\bar F_1\approx\frac{F_1^D}{4}$, which is
+why section 3 plots $\frac{F_1^D}{4}$.
+
+The neutron follows as
 
 $$F_{1n} = 2\bar F_1 - F_{1p}^{\rm Christy}.$$
 
